@@ -1028,6 +1028,18 @@ const greenSoft = "rgba(74,222,128,0.14)";
 const neutralSoft = "#272729";
 const inputBg = "#272729";
 
+// ---- map palette (alerts.in.ua-style situational map: dark base, regions
+// lit up by what's actually happening in them right now) ----
+const mapBg = "#05070c";
+const mapNoAlert = "#131b2c";
+const mapAirRaidDistrict = "#e0272c";
+const mapAirRaidOblast = "#a3282c";
+const mapArtilleryDistrict = "#ff8a1f";
+const mapArtilleryOblast = "#b5601c";
+const mapOtherDistrict = "#c026d3";
+const mapLabelText = "#eef2f8";
+const mapLabelHalo = "rgba(4,6,12,0.85)";
+
 const FONT = "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
 
 const SECTION_DEFS = [
@@ -1486,6 +1498,27 @@ export default function LedgerForum() {
     fetchAirAlerts();
   }, []);
 
+  // alerts.in.ua's alert_type tells us WHAT is happening, not just where —
+  // air_raid (missiles/drones inbound, siren-worthy) reads very differently
+  // on the ground than artillery_shelling/urban_fights (active combat, no
+  // siren will fire for it). Colour-code by that instead of collapsing
+  // everything into one generic "danger" red.
+  function alertKind(type) {
+    if (type === "artillery_shelling" || type === "urban_fights" || type === "combined_shelling") return "artillery";
+    if (type === "chemical" || type === "nuclear") return "other";
+    return "air"; // air_raid, or an unlisted/future type — treat as the siren case
+  }
+
+  // alerts.in.ua reports Kyiv city itself as its own pseudo-oblast
+  // ("м. Київ"), but this district map has no separate city polygon for
+  // it — the capital's raions are folded into "Київська область". Route
+  // that one label to the oblast so a capital-only alert still lights
+  // something up, and flag it so we can also drop a capital marker.
+  function resolveOblast(name) {
+    if (name === "м. Київ") return "Київська область";
+    return name;
+  }
+
   // Recolor the map whenever it's the visible tab (paths only exist in the
   // DOM once dangerouslySetInnerHTML has mounted them) or whenever the
   // alerts list itself changes. The official API gives us the oblast/raion
@@ -1494,8 +1527,11 @@ export default function LedgerForum() {
   useEffect(() => {
     if (activeTab !== "map" || !mapContainerRef.current) return;
     const container = mapContainerRef.current;
+    const svg = container.querySelector("svg");
+    if (!svg) return;
+
     container.querySelectorAll(".map-district").forEach(p => {
-      p.classList.remove("active-alert", "oblast-alert");
+      p.classList.remove("active-alert", "oblast-alert", "kind-air", "kind-artillery", "kind-other");
     });
 
     // The map's data-raion values always end in "район" (e.g.
@@ -1517,18 +1553,95 @@ export default function LedgerForum() {
       return null;
     }
 
+    let kyivCityHit = false;
+
     airAlerts.forEach(a => {
+      const kind = alertKind(a.alert_type);
+      if (a.location_oblast === "м. Київ") kyivCityHit = true;
       let matched = false;
       const districts = findDistrict(a.location_raion) || findDistrict(a.location_title);
       if (districts) {
-        districts.forEach(d => d.classList.add("active-alert"));
+        districts.forEach(d => d.classList.add("active-alert", `kind-${kind}`));
         matched = true;
       }
-      if (!matched && a.location_oblast) {
-        container.querySelectorAll(`[data-oblast="${CSS.escape(a.location_oblast)}"]`)
-          .forEach(d => d.classList.add("oblast-alert"));
+      const oblast = resolveOblast(a.location_oblast);
+      if (!matched && oblast) {
+        container.querySelectorAll(`[data-oblast="${CSS.escape(oblast)}"]`).forEach(d => {
+          // a precise district hit always wins over an oblast-wide tint
+          if (!d.classList.contains("active-alert")) d.classList.add("oblast-alert", `kind-${kind}`);
+        });
       }
     });
+
+    // Oblast name labels + the Kyiv capital marker are built once from the
+    // map's real geometry and then just toggled/recoloured on later alert
+    // refreshes — no need to rebuild the whole label layer every 30s.
+    //
+    // Placement uses the area-weighted centroid of each district's own
+    // center, not the bounding box of the whole oblast — a plain bbox
+    // center lands outside the shape for anything elongated or bent
+    // (Luhansk, Chernihiv), pushing the label past the coastline into the
+    // empty background. Font size scales down with the oblast's own
+    // footprint so small oblasts (Chernivtsi) don't get a label bigger
+    // than the region itself.
+    let layer = svg.querySelector(".map-oblast-labels");
+    if (!layer) {
+      layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      layer.setAttribute("class", "map-oblast-labels");
+      const groups = {};
+      container.querySelectorAll(".map-district").forEach(p => {
+        const oblast = p.getAttribute("data-oblast");
+        if (!oblast) return;
+        (groups[oblast] || (groups[oblast] = [])).push(p);
+      });
+      Object.entries(groups).forEach(([oblast, paths]) => {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        let wSumX = 0, wSumY = 0, wSum = 0;
+        paths.forEach(p => {
+          const b = p.getBBox();
+          minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+          maxX = Math.max(maxX, b.x + b.width); maxY = Math.max(maxY, b.y + b.height);
+          const area = Math.max(b.width * b.height, 1);
+          wSumX += (b.x + b.width / 2) * area;
+          wSumY += (b.y + b.height / 2) * area;
+          wSum += area;
+        });
+        const cx = wSum > 0 ? wSumX / wSum : (minX + maxX) / 2;
+        const cy = wSum > 0 ? wSumY / wSum : (minY + maxY) / 2;
+        const boxW = maxX - minX;
+        const boxH = maxY - minY;
+        const fontSize = Math.max(15, Math.min(28, Math.min(boxW, boxH) * 0.15));
+        const shortName = oblast
+          .replace("Автономна Республіка Крим", "АР Крим")
+          .replace(" область", "");
+        const el = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        el.setAttribute("x", cx);
+        el.setAttribute("y", cy);
+        el.setAttribute("class", "map-oblast-label");
+        el.setAttribute("data-oblast-key", oblast);
+        el.style.fontSize = `${fontSize}px`;
+        el.textContent = shortName;
+        layer.appendChild(el);
+        if (oblast === "Київська область") {
+          const pin = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          pin.setAttribute("cx", cx);
+          pin.setAttribute("cy", cy + fontSize * 1.7);
+          pin.setAttribute("r", Math.max(4, fontSize * 0.22));
+          pin.setAttribute("class", "map-capital-pin");
+          layer.appendChild(pin);
+          const capitalLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          capitalLabel.setAttribute("x", cx);
+          capitalLabel.setAttribute("y", cy + fontSize * 2.9);
+          capitalLabel.setAttribute("class", "map-capital-label");
+          capitalLabel.style.fontSize = `${Math.max(12, fontSize * 0.72)}px`;
+          capitalLabel.textContent = "м. Київ";
+          layer.appendChild(capitalLabel);
+        }
+      });
+      svg.appendChild(layer);
+    }
+    const pin = layer.querySelector(".map-capital-pin");
+    if (pin) pin.classList.toggle("active-alert", kyivCityHit);
   }, [activeTab, airAlerts]);
 
   function switchLang(next) {
@@ -2177,13 +2290,21 @@ export default function LedgerForum() {
         </div>
       </div>
 
-      {/* map tab — real Ukraine district boundaries, shaded by current air alerts */}
+      {/* map tab — real Ukraine district boundaries, shaded by what's actually
+          happening in them right now (air raid vs. active combat) */}
       {activeTab === "map" && (
         <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 20px" }}>
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>
-                {lang === "ua" ? "Карта — повітряна тривога" : "Map — air raid alerts"}
+              <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>
+                  {lang === "ua" ? "Карта — повітряна тривога" : "Map — air raid alerts"}
+                </div>
+                {airAlerts.length > 0 && (
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: danger }}>
+                    {airAlerts.length} {lang === "ua" ? "активних тривог" : "active alerts"}
+                  </span>
+                )}
               </div>
               <button
                 onClick={fetchAirAlerts}
@@ -2200,29 +2321,66 @@ export default function LedgerForum() {
                 : "Data from the official alerts.in.ua API — for real safety decisions use sirens."}
             </div>
             <style>{`
-              .map-district { fill: ${neutralSoft}; stroke: ${bg}; stroke-width: 1.2; transition: fill 0.4s ease; }
-              .map-district.active-alert { fill: ${danger}; }
-              .map-district.oblast-alert { fill: ${danger}; opacity: 0.55; }
+              .map-district { fill: ${mapNoAlert}; stroke: ${mapNoAlert}; stroke-width: 1.1; transition: fill 0.5s ease, stroke 0.5s ease; }
+              .map-district.active-alert.kind-air { fill: ${mapAirRaidDistrict}; stroke: ${mapAirRaidDistrict}; }
+              .map-district.active-alert.kind-artillery { fill: ${mapArtilleryDistrict}; stroke: ${mapArtilleryDistrict}; }
+              .map-district.active-alert.kind-other { fill: ${mapOtherDistrict}; stroke: ${mapOtherDistrict}; }
+              .map-district.oblast-alert.kind-air { fill: ${mapAirRaidOblast}; stroke: ${mapAirRaidOblast}; }
+              .map-district.oblast-alert.kind-artillery { fill: ${mapArtilleryOblast}; stroke: ${mapArtilleryOblast}; }
+              .map-district.oblast-alert.kind-other { fill: ${mapOtherDistrict}; stroke: ${mapOtherDistrict}; opacity: 0.75; }
               .map-label { display: none; }
+              .map-oblast-label {
+                fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 600; font-size: 20px;
+                text-anchor: middle; dominant-baseline: middle; pointer-events: none;
+                paint-order: stroke; stroke: ${mapLabelHalo}; stroke-width: 3px; stroke-linejoin: round;
+              }
+              .map-capital-label {
+                fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 600; font-size: 16px;
+                text-anchor: middle; pointer-events: none;
+                paint-order: stroke; stroke: ${mapLabelHalo}; stroke-width: 3px; stroke-linejoin: round;
+              }
+              .map-capital-pin { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; transition: fill 0.5s ease; }
+              .map-capital-pin.active-alert { fill: ${mapAirRaidDistrict}; }
             `}</style>
-            <div
-              ref={mapContainerRef}
-              style={{ width: "100%" }}
-              dangerouslySetInnerHTML={{
-                __html: `<svg viewBox="0 0 4750 3450" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${DISTRICTS_SVG}</svg>`
-              }}
-            />
+            <div style={{ position: "relative", background: mapBg, borderRadius: 8, overflow: "hidden", border: `1px solid ${border}` }}>
+              <div
+                ref={mapContainerRef}
+                style={{ width: "100%" }}
+                dangerouslySetInnerHTML={{
+                  __html: `<svg viewBox="0 0 4750 3450" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${DISTRICTS_SVG}</svg>`
+                }}
+              />
+              <div style={{
+                position: "absolute", left: 0, right: 0, bottom: 0, padding: "22px 14px 10px",
+                background: "linear-gradient(to top, rgba(2,3,7,0.85), rgba(2,3,7,0))",
+                display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 8, flexWrap: "wrap",
+                pointerEvents: "none",
+              }}>
+                <span style={{ fontSize: 11, color: "rgba(238,242,248,0.55)", fontWeight: 600, letterSpacing: "0.02em" }}>
+                  alerts.in.ua
+                </span>
+                {airAlertsCheckedAt && (
+                  <span style={{ fontSize: 11, color: "rgba(238,242,248,0.4)" }}>
+                    {airAlertsCheckedAt.toLocaleDateString("uk-UA")}, {airAlertsCheckedAt.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+              </div>
+            </div>
             <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 12.5, color: textSoft, flexWrap: "wrap" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: neutralSoft, border: `1px solid ${border}`, display: "inline-block" }} />
-                {lang === "ua" ? "немає даних" : "no data"}
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: mapNoAlert, border: `1px solid ${border}`, display: "inline-block" }} />
+                {lang === "ua" ? "немає тривоги" : "no alert"}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: danger, display: "inline-block" }} />
-                {lang === "ua" ? "тривога в районі" : "alert in this district"}
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: mapAirRaidDistrict, display: "inline-block" }} />
+                {lang === "ua" ? "повітряна тривога" : "air raid alert"}
               </span>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 12, height: 12, borderRadius: 3, background: danger, opacity: 0.55, display: "inline-block" }} />
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: mapArtilleryDistrict, display: "inline-block" }} />
+                {lang === "ua" ? "бої / робота артилерії" : "combat / shelling"}
+              </span>
+              <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ width: 12, height: 12, borderRadius: 3, background: mapAirRaidOblast, display: "inline-block" }} />
                 {lang === "ua" ? "тривога десь в області" : "alert somewhere in the oblast"}
               </span>
             </div>
