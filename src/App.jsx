@@ -2077,6 +2077,35 @@ export default function LedgerForum() {
               </button>
             </div>
           </div>
+
+          <div style={{ marginTop: 14, background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "14px 18px" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+              <h3 style={{ fontWeight: 700, fontSize: 14, margin: 0, color: textSoft }}>
+                {lang === "ua" ? "Обговорення графіків на форумі" : "Schedule discussions on the forum"}
+              </h3>
+              <button
+                onClick={() => { setActiveTab("forum"); setActiveSection("schedule"); }}
+                style={{ background: "none", border: "none", color: orange, fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}
+              >
+                {lang === "ua" ? "Усі →" : "All →"}
+              </button>
+            </div>
+            {posts.filter(p => p.section === "schedule").slice(0, 3).map(p => (
+              <div
+                key={p.id}
+                onClick={() => { setActiveTab("forum"); setActiveSection("schedule"); }}
+                style={{ padding: "8px 0", borderTop: `1px solid ${border}`, cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 10 }}
+              >
+                <span style={{ fontSize: 13.5, color: text }}>{p.title}</span>
+                <span style={{ fontSize: 12, color: textSoft, flex: "none" }}>▲ {p.votes}</span>
+              </div>
+            ))}
+            {posts.filter(p => p.section === "schedule").length === 0 && (
+              <div style={{ fontSize: 13, color: textSoft, padding: "8px 0" }}>
+                {lang === "ua" ? "Поки що немає обговорень у цій секції." : "No discussions in this section yet."}
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -2259,7 +2288,7 @@ export default function LedgerForum() {
       {/* map tab — real Ukraine district boundaries, shaded by what's actually
           happening in them right now (air raid vs. active combat) */}
       {activeTab === "map" && (
-        <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 20px" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", padding: "20px 20px" }}>
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
