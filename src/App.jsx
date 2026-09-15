@@ -1653,7 +1653,7 @@ export default function LedgerForum() {
         const cy = wSum > 0 ? wSumY / wSum : (minY + maxY) / 2;
         const boxW = maxX - minX;
         const boxH = maxY - minY;
-        const fontSize = Math.max(19, Math.min(32, Math.min(boxW, boxH) * 0.19));
+        const fontSize = Math.max(23, Math.min(38, Math.min(boxW, boxH) * 0.23));
         const shortName = oblast
           .replace("Автономна Республіка Крим", "АР Крим")
           .replace(" область", "");
@@ -1677,7 +1677,7 @@ export default function LedgerForum() {
           capitalLabel.setAttribute("x", cx);
           capitalLabel.setAttribute("y", cy + fontSize * 2.9);
           capitalLabel.setAttribute("class", "map-capital-label");
-          capitalLabel.style.fontSize = `${Math.max(19, fontSize * 0.95)}px`;
+          capitalLabel.style.fontSize = `${Math.max(22, fontSize * 0.95)}px`;
           capitalLabel.textContent = "м. Київ";
           layer.appendChild(capitalLabel);
         }
@@ -1706,9 +1706,9 @@ export default function LedgerForum() {
         layer.appendChild(dot);
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
         label.setAttribute("x", cx);
-        label.setAttribute("y", cy + 25);
+        label.setAttribute("y", cy + 28);
         label.setAttribute("class", "map-capital-label");
-        label.style.fontSize = "19px";
+        label.style.fontSize = "22px";
         label.textContent = city;
         layer.appendChild(label);
       });
@@ -2593,7 +2593,7 @@ export default function LedgerForum() {
                 <span style={{ fontSize: 11, color: "rgba(238,242,248,0.45)" }}>
                   {liveClock.toLocaleDateString("uk-UA")}, {liveClock.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                 </span>
-                <span style={{ fontSize: 20, fontWeight: 700, color: "rgba(238,242,248,0.35)" }}>
+                <span style={{ fontSize: 15, fontWeight: 700, color: "rgba(238,242,248,0.35)" }}>
                   blackout.org.ua
                 </span>
               </div>
