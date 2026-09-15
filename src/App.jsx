@@ -483,7 +483,7 @@ const DISTRICTS_SVG = `<g data-raion="Березівський район" data-
 </text>
 </g><g data-raion="Ялтинський район" data-uid="1812">
 <path xmlns="http://www.w3.org/2000/svg"
-      d="M3208 3347h1v1h3v-1l1 1h1l1 1h3l2 1 1 1h2v1h1l1-1 1 1h6l1-1h1v-2h1l1-1 1 1h1v-1h4v-1l1-1h3v1h2v-1l2-1v-1l1-1h1v-1h2l2-2h2v1l1-1h2l1-1h1l1-1h1l1 1h1v-1h3l1 1 1-1h1v-1l1-1v-2h1v-3h1v-1l1-2v-1l1-1 1-1v-3l1-1 1-1v-1l1-2v-1l1-1v-1l1-1 1 1v-1h1l1-1h2l1-1v1h3l1-1 1-1h7v-1l1 1 2-1h1v-1h1l1-1 1-1 1-2v-1l1-1 1-1-1-1 1-1v-2l1-1h1l1-1h2l1-1v-1h1l1-1h4l1 1h1l2 1h3v-5l1-1-1-1v-3h1v-4l1-1 1-1h1l1-1v1h1v-1h1v-5h1v-3l1-1 1-2v-1l1-1v-1l1-1 1-1 1-1v-2l1-2v-1l1-1v-2l1-1 1-1v-3h1v-1h1l1-1v-2h1l1-1v-1l1-1h1v-1l1-1 1-2 1-1 2-2 1-1h1l1-1 1-1h1l1-1 1-1 1-1h1l1-1h2v-1h1l1-1h3l1-1h1l1-1 1-1 1-1 1-1 1-1 1-1h3l2-1h2l1-1h1v-1h1l2-3 1-1h1l2-1v1h1l1-1 1-1h2l1-1 1-1h1l1-1h6l1-1 1-1 1-1h1l2-1 1-1 1-1h2v-1h1l1-1h1l1-1h2l-1-2v-2l-2-1v-9l2-2 1-7 1-1 1-2-3-2-1-4-3-1-1 1-1-1h-1v1h-1l-1 3v4l-1 2h-1l-3-2-1 1-2-1h-3l-1-1v1l2 1-1 3-3 2v1l1 1-1 1-1-1-1 1h1l-1 1h-2v1l-1-1h1-1l1 1v1h-3l-1 1-1 1-2-5v-1l1-1h2l-2-1h-2l-2-1 3-3h-1l2-1v-1h-1l-6-3-4-1h-7v9l-8-1h-2l-2 1-1-1-2 3-1 1-2 2v2h2v2h-1l1 1-4 3-3 2h-1v1l-1-1h-1l-5 2v4l1 2-2 1-4 3h-3l-2 1-1 1v1l-1 2h-1v3l-1 1-1 2-2 1h-1l-2 1-2 1-2 3h-2l-1-1v-2h-1v-4l-1-2h-2v1l-1-1v1l1 1h-1v1l-1 1h-2v-2h-3v-1 5l1 2h-2v-1h-2l-1-1v1h-3l-1 1v-1l-1 1h-3v1l-1 1-1 1-2 3h-2v2h-1v1h-1v1l-1 1h-1v-1h-2l-1 1h-3l-1-1v5h1l-1 1h5v3h-1l1 1h-1v1l1 1v1h1v2l1 1v1l2-1h1v1h1v6l-1 1 1 1v3l1 3v4l1 2v1h-2v9l1 2-2-1v2h-1v1h-1v1l-1 1v1l-1 1-2-2v4l-1 1-1 1h-1l-1 1v1h-1l-1 1v1-2h-4l-1 1h-1l-1 2h-1 1l-1 1h-1v1h-1v2h-1l1 1v1h-1l-1 1-1 3v2h-3l-1 1h-1l-1 1v1l-1 1v1h-1l-1-1h-1l-1 1-2 1h-3v1l-2 1h1v2l-2 1-1 1v2l1 1-6 1h-5v2h2l-1 4-3 4-2 2-1 1v1h-2v1h-5l-1 1v1l-4 2h-1l-1-1-5 1h-2l-1-1v1l-1-1-2 ф1h-4l-4 1h-2l-4 3-3 1-2 1h-1v1h-1v1l-1-1h-2l-1-1-1 1v-1 4h-3l-1 1h-1l-1 1h-2 1l1 1h4v1l1-1h2l1-1h1v-1h1v-1h1v1h1v-1h4v-1h1l1-1h2v-1h6v-1h1l1 1h4Z"
+      d="M3208 3347h1v1h3v-1l1 1h1l1 1h3l2 1 1 1h2v1h1l1-1 1 1h6l1-1h1v-2h1l1-1 1 1h1v-1h4v-1l1-1h3v1h2v-1l2-1v-1l1-1h1v-1h2l2-2h2v1l1-1h2l1-1h1l1-1h1l1 1h1v-1h3l1 1 1-1h1v-1l1-1v-2h1v-3h1v-1l1-2v-1l1-1 1-1v-3l1-1 1-1v-1l1-2v-1l1-1v-1l1-1 1 1v-1h1l1-1h2l1-1v1h3l1-1 1-1h7v-1l1 1 2-1h1v-1h1l1-1 1-1 1-2v-1l1-1 1-1-1-1 1-1v-2l1-1h1l1-1h2l1-1v-1h1l1-1h4l1 1h1l2 1h3v-5l1-1-1-1v-3h1v-4l1-1 1-1h1l1-1v1h1v-1h1v-5h1v-3l1-1 1-2v-1l1-1v-1l1-1 1-1 1-1v-2l1-2v-1l1-1v-2l1-1 1-1v-3h1v-1h1l1-1v-2h1l1-1v-1l1-1h1v-1l1-1 1-2 1-1 2-2 1-1h1l1-1 1-1h1l1-1 1-1 1-1h1l1-1h2v-1h1l1-1h3l1-1h1l1-1 1-1 1-1 1-1 1-1 1-1h3l2-1h2l1-1h1v-1h1l2-3 1-1h1l2-1v1h1l1-1 1-1h2l1-1 1-1h1l1-1h6l1-1 1-1 1-1h1l2-1 1-1 1-1h2v-1h1l1-1h1l1-1h2l-1-2v-2l-2-1v-9l2-2 1-7 1-1 1-2-3-2-1-4-3-1-1 1-1-1h-1v1h-1l-1 3v4l-1 2h-1l-3-2-1 1-2-1h-3l-1-1v1l2 1-1 3-3 2v1l1 1-1 1-1-1-1 1h1l-1 1h-2v1l-1-1h1-1l1 1v1h-3l-1 1-1 1-2-5v-1l1-1h2l-2-1h-2l-2-1 3-3h-1l2-1v-1h-1l-6-3-4-1h-7v9l-8-1h-2l-2 1-1-1-2 3-1 1-2 2v2h2v2h-1l1 1-4 3-3 2h-1v1l-1-1h-1l-5 2v4l1 2-2 1-4 3h-3l-2 1-1 1v1l-1 2h-1v3l-1 1-1 2-2 1h-1l-2 1-2 1-2 3h-2l-1-1v-2h-1v-4l-1-2h-2v1l-1-1v1l1 1h-1v1l-1 1h-2v-2h-3v-1 5l1 2h-2v-1h-2l-1-1v1h-3l-1 1v-1l-1 1h-3v1l-1 1-1 1-2 3h-2v2h-1v1h-1v1l-1 1h-1v-1h-2l-1 1h-3l-1-1v5h1l-1 1h5v3h-1l1 1h-1v1l1 1v1h1v2l1 1v1l2-1h1v1h1v6l-1 1 1 1v3l1 3v4l1 2v1h-2v9l1 2-2-1v2h-1v1h-1v1l-1 1v1l-1 1-2-2v4l-1 1-1 1h-1l-1 1v1h-1l-1 1v1-2h-4l-1 1h-1l-1 2h-1 1l-1 1h-1v1h-1v2h-1l1 1v1h-1l-1 1-1 3v2h-3l-1 1h-1l-1 1v1l-1 1v1h-1l-1-1h-1l-1 1-2 1h-3v1l-2 1h1v2l-2 1-1 1v2l1 1-6 1h-5v2h2l-1 4-3 4-2 2-1 1v1h-2v1h-5l-1 1v1l-4 2h-1l-1-1-5 1h-2l-1-1v1l-1-1-2-1h-4l-4 1h-2l-4 3-3 1-2 1h-1v1h-1v1l-1-1h-2l-1-1-1 1v-1 4h-3l-1 1h-1l-1 1h-2 1l1 1h4v1l1-1h2l1-1h1v-1h1v-1h1v1h1v-1h4v-1h1l1-1h2v-1h6v-1h1l1 1h4Z"
       class="map-district" data-city="м. Ялта" data-oblast="Автономна Республіка Крим" data-raion="Ялтинський район"/>
 <text xmlns="http://www.w3.org/2000/svg" x="3310" y="3256" aria-label="Ялтинський" class="map-label color3" color="3">
   Ялтинський
@@ -1709,6 +1709,7 @@ export default function LedgerForum() {
   const currentEntry = scheduleEntries.find(e => `${e.initiator}__${e.queue}` === selectedEntryKey) || null;
   const currentSchedule = manualOverrides[selectedEntryKey] || currentEntry?.today || defaultQueueHours();
   const hoursOffCount = currentSchedule.filter(v => !v).length;
+  const tomorrowOffCount = currentEntry?.tomorrow ? currentEntry.tomorrow.filter(v => !v).length : null;
   const isManualOverride = Boolean(manualOverrides[selectedEntryKey]);
 
   return (
@@ -2078,33 +2079,32 @@ export default function LedgerForum() {
             </div>
           </div>
 
-          <div style={{ marginTop: 14, background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "14px 18px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-              <h3 style={{ fontWeight: 700, fontSize: 14, margin: 0, color: textSoft }}>
-                {lang === "ua" ? "Обговорення графіків на форумі" : "Schedule discussions on the forum"}
-              </h3>
-              <button
-                onClick={() => { setActiveTab("forum"); setActiveSection("schedule"); }}
-                style={{ background: "none", border: "none", color: orange, fontSize: 12.5, cursor: "pointer", fontWeight: 600 }}
-              >
-                {lang === "ua" ? "Усі →" : "All →"}
-              </button>
+          <div style={{ marginTop: 14, background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: textSoft, marginBottom: 12, textTransform: "uppercase" }}>
+              {lang === "ua" ? "Сьогодні проти завтра" : "Today vs. tomorrow"}
             </div>
-            {posts.filter(p => p.section === "schedule").slice(0, 3).map(p => (
-              <div
-                key={p.id}
-                onClick={() => { setActiveTab("forum"); setActiveSection("schedule"); }}
-                style={{ padding: "8px 0", borderTop: `1px solid ${border}`, cursor: "pointer", display: "flex", justifyContent: "space-between", gap: 10 }}
-              >
-                <span style={{ fontSize: 13.5, color: text }}>{p.title}</span>
-                <span style={{ fontSize: 12, color: textSoft, flex: "none" }}>▲ {p.votes}</span>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 30, fontWeight: 800, color: hoursOffCount > 0 ? danger : text }}>{hoursOffCount}</div>
+                <div style={{ fontSize: 12, color: textSoft }}>{lang === "ua" ? "год без світла сьогодні" : "hrs off today"}</div>
               </div>
-            ))}
-            {posts.filter(p => p.section === "schedule").length === 0 && (
-              <div style={{ fontSize: 13, color: textSoft, padding: "8px 0" }}>
-                {lang === "ua" ? "Поки що немає обговорень у цій секції." : "No discussions in this section yet."}
+              <div style={{ fontSize: 20, color: textSoft }}>→</div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 30, fontWeight: 800, color: tomorrowOffCount === null ? textSoft : tomorrowOffCount > 0 ? danger : text }}>
+                  {tomorrowOffCount === null ? "?" : tomorrowOffCount}
+                </div>
+                <div style={{ fontSize: 12, color: textSoft }}>{lang === "ua" ? "год без світла завтра" : "hrs off tomorrow"}</div>
               </div>
-            )}
+            </div>
+            <div style={{ fontSize: 12.5, color: textSoft, textAlign: "center", marginTop: 12 }}>
+              {tomorrowOffCount === null
+                ? (lang === "ua" ? "Графік на завтра ще не опубліковано." : "Tomorrow's schedule isn't published yet.")
+                : tomorrowOffCount === hoursOffCount
+                  ? (lang === "ua" ? "Без змін порівняно із сьогодні." : "No change from today.")
+                  : tomorrowOffCount > hoursOffCount
+                    ? (lang === "ua" ? `На ${tomorrowOffCount - hoursOffCount} год гірше, ніж сьогодні.` : `${tomorrowOffCount - hoursOffCount}h worse than today.`)
+                    : (lang === "ua" ? `На ${hoursOffCount - tomorrowOffCount} год краще, ніж сьогодні.` : `${hoursOffCount - tomorrowOffCount}h better than today.`)}
+            </div>
           </div>
         </div>
       )}
