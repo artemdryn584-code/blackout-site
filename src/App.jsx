@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock, ChevronDown, Sun, Moon } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient";
+import polygonClipping from "polygon-clipping";
 
 const BACKEND_URL = "https://outage-schedule-backend.onrender.com";
 
@@ -1011,6 +1012,106 @@ const DISTRICTS_SVG = `<g data-raion="Березівський район" data-
 </text>
 </g>`;
 
+// The source data only gives us raion (district) polygons — there's no
+// separate oblast (region) boundary layer. To draw a clean single outline
+// per oblast (like alerts.in.ua's own map does) instead of a fine mesh of
+// every individual raion edge, we union each oblast's raion shapes into
+// one outer contour at load time. Every path in DISTRICTS_SVG only uses
+// M/L/H/V/Z (verified against the source — no curves, no multi-subpath
+// islands), so a small hand-rolled parser is enough; no SVG path library needed.
+function parseDistrictPathToRing(d) {
+  const tokens = d.match(/[MLHVZmlhvz]|-?\d*\.?\d+/g) || [];
+  let i = 0;
+  let x = 0, y = 0;
+  let cmd = null;
+  const points = [];
+  while (i < tokens.length) {
+    if (/^[MLHVZmlhvz]$/.test(tokens[i])) {
+      cmd = tokens[i];
+      i++;
+      continue;
+    }
+    switch (cmd) {
+      case "M": x = parseFloat(tokens[i]); y = parseFloat(tokens[i + 1]); i += 2; points.push([x, y]); cmd = "L"; break;
+      case "m": x += parseFloat(tokens[i]); y += parseFloat(tokens[i + 1]); i += 2; points.push([x, y]); cmd = "l"; break;
+      case "L": x = parseFloat(tokens[i]); y = parseFloat(tokens[i + 1]); i += 2; points.push([x, y]); break;
+      case "l": x += parseFloat(tokens[i]); y += parseFloat(tokens[i + 1]); i += 2; points.push([x, y]); break;
+      case "H": x = parseFloat(tokens[i]); i += 1; points.push([x, y]); break;
+      case "h": x += parseFloat(tokens[i]); i += 1; points.push([x, y]); break;
+      case "V": y = parseFloat(tokens[i]); i += 1; points.push([x, y]); break;
+      case "v": y += parseFloat(tokens[i]); i += 1; points.push([x, y]); break;
+      case "Z": case "z": break;
+      default: i++;
+    }
+  }
+  if (points.length > 1) {
+    const [fx, fy] = points[0];
+    const [lx, ly] = points[points.length - 1];
+    if (fx !== lx || fy !== ly) points.push([fx, fy]);
+  }
+  return points;
+}
+
+function ringArea(ring) {
+  let area = 0;
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [x1, y1] = ring[i];
+    const [x2, y2] = ring[i + 1];
+    area += x1 * y2 - x2 * y1;
+  }
+  return Math.abs(area) / 2;
+}
+
+// Ukraine's oblasts are all single contiguous shapes with no exclaves, so
+// the true result of unioning one oblast's raions is always exactly one
+// ring. Numerical precision in the union algorithm occasionally produces
+// extra sliver rings along exactly-touching raion edges — keeping only the
+// largest-area ring drops those artifacts without needing a hole-aware
+// (outer ring + real holes) path.
+function multiPolygonToPathD(multiPolygon) {
+  let best = null;
+  let bestArea = -1;
+  for (const polygon of multiPolygon) {
+    for (const ring of polygon) {
+      if (ring.length < 4) continue;
+      const area = ringArea(ring);
+      if (area > bestArea) { bestArea = area; best = ring; }
+    }
+  }
+  if (!best) return "";
+  let d = `M${best[0][0]},${best[0][1]} `;
+  for (let i = 1; i < best.length; i++) d += `L${best[i][0]},${best[i][1]} `;
+  return d + "Z";
+}
+
+const OBLAST_BORDER_PATHS = (() => {
+  const ringsByOblast = {};
+  const pathRe = /<path\b[^>]*\/>/g;
+  const dRe = / d="([^"]+)"/;
+  const oblastRe = / data-oblast="([^"]+)"/;
+  const matches = DISTRICTS_SVG.match(pathRe) || [];
+  for (const tag of matches) {
+    const dMatch = tag.match(dRe);
+    const oblastMatch = tag.match(oblastRe);
+    if (!dMatch || !oblastMatch) continue;
+    const ring = parseDistrictPathToRing(dMatch[1]);
+    if (ring.length < 3) continue;
+    (ringsByOblast[oblastMatch[1]] || (ringsByOblast[oblastMatch[1]] = [])).push(ring);
+  }
+  const result = {};
+  for (const [oblast, rings] of Object.entries(ringsByOblast)) {
+    const polygons = rings.map(r => [r]);
+    let unioned;
+    try {
+      unioned = polygonClipping.union(...polygons);
+    } catch (e) {
+      unioned = polygons; // fall back to drawing the un-merged raion outlines rather than dropping the oblast entirely
+    }
+    result[oblast] = multiPolygonToPathD(unioned);
+  }
+  return result;
+})();
+
 // ---- design tokens (Reddit-style) ----
 const bg = "#030303";
 const card = "#1A1A1B";
@@ -1043,6 +1144,7 @@ const mapChemicalDistrict = "#b7ea35";
 const mapNuclearDistrict = "#000000";
 const mapLabelText = "#eef2f8";
 const mapLabelHalo = "rgba(4,6,12,0.85)";
+const mapOblastBorder = "rgba(160,178,204,0.4)";
 
 // alerts.in.ua doesn't paint every oblast name the same colour — each one
 // keeps its own identity colour (a 4-colour rotation: blue/pink/olive/green,
@@ -1266,7 +1368,7 @@ function defaultQueueHours() {
 // ---- air raid status: live sample from alarmmap.online, NOT an official feed ----
 const AIR_ALERT_UI = {
   title: "Повітряна тривога — активні тривоги",
-  disclaimer: "Дані з офіційного API alerts.in.ua — для реальних рішень про безпеку користуйтеся сиренами.",
+  disclaimer: "Дані з офіційного API alerts.in.ua — для реальних рішень про безпеку користуйтеся сиренами. · blackout.org.ua",
   none: "Наразі немає активних тривог",
   loading: "Перевіряємо поточний стан тривог…",
   error: "Не вдалося перевірити стан тривог. Спробуйте пізніше.",
@@ -1546,7 +1648,7 @@ export default function LedgerForum() {
         const cy = wSum > 0 ? wSumY / wSum : (minY + maxY) / 2;
         const boxW = maxX - minX;
         const boxH = maxY - minY;
-        const fontSize = Math.max(17, Math.min(32, Math.min(boxW, boxH) * 0.17));
+        const fontSize = Math.max(12, Math.min(20, Math.min(boxW, boxH) * 0.12));
         const shortName = oblast
           .replace("Автономна Республіка Крим", "АР Крим")
           .replace(" область", "");
@@ -2395,27 +2497,27 @@ export default function LedgerForum() {
             </div>
             <div style={{ background: dangerSoft, border: `1px solid ${danger}30`, borderRadius: 6, padding: "8px 12px", marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
               {lang === "ua"
-                ? "Дані з офіційного API alerts.in.ua — для реальних рішень про безпеку користуйтеся сиренами."
-                : "Data from the official alerts.in.ua API — for real safety decisions use sirens."}
+                ? "Дані з офіційного API alerts.in.ua — для реальних рішень про безпеку користуйтеся сиренами. · blackout.org.ua"
+                : "Data from the official alerts.in.ua API — for real safety decisions use sirens. · blackout.org.ua"}
             </div>
             <style>{`
-              .map-district { fill: ${mapNoAlert}; stroke: rgba(140,165,199,0.35); stroke-width: 1.2; transition: fill 0.5s ease, stroke 0.5s ease; }
-              .map-district.kind-air { fill: ${mapAirRaidDistrict}; stroke: rgba(255,255,255,0.25); }
-              .map-district.kind-artillery { fill: ${mapArtilleryDistrict}; stroke: rgba(255,255,255,0.25); }
-              .map-district.kind-urban { fill: ${mapUrbanDistrict}; stroke: rgba(255,255,255,0.25); }
-              .map-district.kind-chemical { fill: ${mapChemicalDistrict}; stroke: rgba(255,255,255,0.25); }
+              .map-district { fill: ${mapNoAlert}; stroke: none; transition: fill 0.5s ease; }
+              .map-district.kind-air { fill: ${mapAirRaidDistrict}; }
+              .map-district.kind-artillery { fill: ${mapArtilleryDistrict}; }
+              .map-district.kind-urban { fill: ${mapUrbanDistrict}; }
+              .map-district.kind-chemical { fill: ${mapChemicalDistrict}; }
               .map-district.kind-nuclear { fill: ${mapNuclearDistrict}; stroke: #ffffff; stroke-width: 1.5; }
               .map-district.oblast-alert { opacity: 0.6; }
               .map-label { display: none; }
               .map-oblast-label {
-                fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 900; font-size: 20px;
+                fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 700; font-size: 14px;
                 text-anchor: middle; dominant-baseline: middle; pointer-events: none;
-                paint-order: stroke; stroke: ${mapLabelHalo}; stroke-width: 4.5px; stroke-linejoin: round;
+                paint-order: stroke; stroke: ${mapLabelHalo}; stroke-width: 3px; stroke-linejoin: round;
               }
               .map-capital-label {
-                fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 900; font-size: 16px;
+                fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 700; font-size: 12px;
                 text-anchor: middle; pointer-events: none;
-                paint-order: stroke; stroke: ${mapLabelHalo}; stroke-width: 4.5px; stroke-linejoin: round;
+                paint-order: stroke; stroke: ${mapLabelHalo}; stroke-width: 3px; stroke-linejoin: round;
               }
               .map-capital-pin { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; transition: fill 0.5s ease; }
               .map-capital-pin.active-alert { fill: ${mapAirRaidDistrict}; }
@@ -2435,6 +2537,17 @@ export default function LedgerForum() {
                   __html: `<svg viewBox="67 132 4852 3252" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">${DISTRICTS_SVG}</svg>`
                 }}
               />
+              {/* oblast (region) outlines — a single clean contour per region, computed
+                  once from the raion polygons above, drawn on top so region boundaries
+                  read clearly even when neighbouring raions share the same alert fill */}
+              <svg
+                viewBox="67 132 4852 3252"
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+              >
+                {Object.entries(OBLAST_BORDER_PATHS).map(([oblast, d]) => (
+                  <path key={oblast} d={d} fill="none" stroke={mapOblastBorder} strokeWidth={1.5} strokeLinejoin="round" />
+                ))}
+              </svg>
               {airAlertsCheckedAt && (
                 <div style={{
                   position: "absolute", left: 0, right: 0, bottom: 0, padding: "22px 14px 10px",
