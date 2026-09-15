@@ -1481,6 +1481,11 @@ export default function LedgerForum() {
   const [airAlertsLoading, setAirAlertsLoading] = useState(true);
   const [airAlertsError, setAirAlertsError] = useState("");
   const [airAlertsCheckedAt, setAirAlertsCheckedAt] = useState(null);
+  const [liveClock, setLiveClock] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setLiveClock(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
 
   async function fetchPosts() {
     setPostsLoading(true);
@@ -1648,7 +1653,7 @@ export default function LedgerForum() {
         const cy = wSum > 0 ? wSumY / wSum : (minY + maxY) / 2;
         const boxW = maxX - minX;
         const boxH = maxY - minY;
-        const fontSize = Math.max(15, Math.min(26, Math.min(boxW, boxH) * 0.15));
+        const fontSize = Math.max(19, Math.min(32, Math.min(boxW, boxH) * 0.19));
         const shortName = oblast
           .replace("Автономна Республіка Крим", "АР Крим")
           .replace(" область", "");
@@ -1672,7 +1677,7 @@ export default function LedgerForum() {
           capitalLabel.setAttribute("x", cx);
           capitalLabel.setAttribute("y", cy + fontSize * 2.9);
           capitalLabel.setAttribute("class", "map-capital-label");
-          capitalLabel.style.fontSize = `${Math.max(15, fontSize * 0.9)}px`;
+          capitalLabel.style.fontSize = `${Math.max(19, fontSize * 0.95)}px`;
           capitalLabel.textContent = "м. Київ";
           layer.appendChild(capitalLabel);
         }
@@ -1701,9 +1706,9 @@ export default function LedgerForum() {
         layer.appendChild(dot);
         const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
         label.setAttribute("x", cx);
-        label.setAttribute("y", cy + 20);
+        label.setAttribute("y", cy + 25);
         label.setAttribute("class", "map-capital-label");
-        label.style.fontSize = "15px";
+        label.style.fontSize = "19px";
         label.textContent = city;
         layer.appendChild(label);
       });
@@ -2579,18 +2584,19 @@ export default function LedgerForum() {
                   <path key={oblast} d={d} fill="none" stroke={mapOblastBorder} strokeWidth={1.5} strokeLinejoin="round" />
                 ))}
               </svg>
-              {airAlertsCheckedAt && (
-                <div style={{
-                  position: "absolute", left: 0, right: 0, bottom: 0, padding: "22px 14px 10px",
-                  background: "linear-gradient(to top, rgba(2,3,7,0.85), rgba(2,3,7,0))",
-                  display: "flex", justifyContent: "flex-end", alignItems: "flex-end", gap: 8, flexWrap: "wrap",
-                  pointerEvents: "none",
-                }}>
-                  <span style={{ fontSize: 11, color: "rgba(238,242,248,0.4)" }}>
-                    {airAlertsCheckedAt.toLocaleDateString("uk-UA")}, {airAlertsCheckedAt.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-              )}
+              <div style={{
+                position: "absolute", left: 0, right: 0, bottom: 0, padding: "22px 14px 10px",
+                background: "linear-gradient(to top, rgba(2,3,7,0.85), rgba(2,3,7,0))",
+                display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 2,
+                pointerEvents: "none",
+              }}>
+                <span style={{ fontSize: 11, color: "rgba(238,242,248,0.45)" }}>
+                  {liveClock.toLocaleDateString("uk-UA")}, {liveClock.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+                </span>
+                <span style={{ fontSize: 20, fontWeight: 700, color: "rgba(238,242,248,0.35)" }}>
+                  blackout.org.ua
+                </span>
+              </div>
             </div>
             <div style={{ display: "flex", gap: 16, marginTop: 12, fontSize: 12.5, color: textSoft, flexWrap: "wrap" }}>
               <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
