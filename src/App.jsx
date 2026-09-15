@@ -1709,7 +1709,6 @@ export default function LedgerForum() {
   const currentEntry = scheduleEntries.find(e => `${e.initiator}__${e.queue}` === selectedEntryKey) || null;
   const currentSchedule = manualOverrides[selectedEntryKey] || currentEntry?.today || defaultQueueHours();
   const hoursOffCount = currentSchedule.filter(v => !v).length;
-  const tomorrowOffCount = currentEntry?.tomorrow ? currentEntry.tomorrow.filter(v => !v).length : null;
   const isManualOverride = Boolean(manualOverrides[selectedEntryKey]);
 
   return (
@@ -2076,34 +2075,6 @@ export default function LedgerForum() {
               >
                 {SCHEDULE_UI.reset}
               </button>
-            </div>
-          </div>
-
-          <div style={{ marginTop: 14, background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
-            <div style={{ fontWeight: 700, fontSize: 13, color: textSoft, marginBottom: 12, textTransform: "uppercase" }}>
-              {lang === "ua" ? "Сьогодні проти завтра" : "Today vs. tomorrow"}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 24, flexWrap: "wrap" }}>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 30, fontWeight: 800, color: hoursOffCount > 0 ? danger : text }}>{hoursOffCount}</div>
-                <div style={{ fontSize: 12, color: textSoft }}>{lang === "ua" ? "год без світла сьогодні" : "hrs off today"}</div>
-              </div>
-              <div style={{ fontSize: 20, color: textSoft }}>→</div>
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 30, fontWeight: 800, color: tomorrowOffCount === null ? textSoft : tomorrowOffCount > 0 ? danger : text }}>
-                  {tomorrowOffCount === null ? "?" : tomorrowOffCount}
-                </div>
-                <div style={{ fontSize: 12, color: textSoft }}>{lang === "ua" ? "год без світла завтра" : "hrs off tomorrow"}</div>
-              </div>
-            </div>
-            <div style={{ fontSize: 12.5, color: textSoft, textAlign: "center", marginTop: 12 }}>
-              {tomorrowOffCount === null
-                ? (lang === "ua" ? "Графік на завтра ще не опубліковано." : "Tomorrow's schedule isn't published yet.")
-                : tomorrowOffCount === hoursOffCount
-                  ? (lang === "ua" ? "Без змін порівняно із сьогодні." : "No change from today.")
-                  : tomorrowOffCount > hoursOffCount
-                    ? (lang === "ua" ? `На ${tomorrowOffCount - hoursOffCount} год гірше, ніж сьогодні.` : `${tomorrowOffCount - hoursOffCount}h worse than today.`)
-                    : (lang === "ua" ? `На ${hoursOffCount - tomorrowOffCount} год краще, ніж сьогодні.` : `${hoursOffCount - tomorrowOffCount}h better than today.`)}
             </div>
           </div>
         </div>
