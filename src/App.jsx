@@ -2399,11 +2399,11 @@ export default function LedgerForum() {
                 : "Data from the official alerts.in.ua API — for real safety decisions use sirens."}
             </div>
             <style>{`
-              .map-district { fill: ${mapNoAlert}; stroke: ${mapNoAlert}; stroke-width: 1.1; transition: fill 0.5s ease, stroke 0.5s ease; }
-              .map-district.kind-air { fill: ${mapAirRaidDistrict}; stroke: ${mapAirRaidDistrict}; }
-              .map-district.kind-artillery { fill: ${mapArtilleryDistrict}; stroke: ${mapArtilleryDistrict}; }
-              .map-district.kind-urban { fill: ${mapUrbanDistrict}; stroke: ${mapUrbanDistrict}; }
-              .map-district.kind-chemical { fill: ${mapChemicalDistrict}; stroke: ${mapChemicalDistrict}; }
+              .map-district { fill: ${mapNoAlert}; stroke: rgba(140,165,199,0.35); stroke-width: 1.2; transition: fill 0.5s ease, stroke 0.5s ease; }
+              .map-district.kind-air { fill: ${mapAirRaidDistrict}; stroke: rgba(255,255,255,0.25); }
+              .map-district.kind-artillery { fill: ${mapArtilleryDistrict}; stroke: rgba(255,255,255,0.25); }
+              .map-district.kind-urban { fill: ${mapUrbanDistrict}; stroke: rgba(255,255,255,0.25); }
+              .map-district.kind-chemical { fill: ${mapChemicalDistrict}; stroke: rgba(255,255,255,0.25); }
               .map-district.kind-nuclear { fill: ${mapNuclearDistrict}; stroke: #ffffff; stroke-width: 1.5; }
               .map-district.oblast-alert { opacity: 0.6; }
               .map-label { display: none; }
