@@ -1127,6 +1127,11 @@ const UI = {
     whatHappenedPlaceholder: "neighborhood, what caused it, how long it lasted…",
     addToTotal: "Add to total",
     debtCleared: "outage reported",
+    disclaimer: [
+      "This site was built to make it easier to follow the power situation across Ukraine. We're not a utility company or a government body — all information comes from public sources, so we can't guarantee its accuracy or affect real outage schedules.",
+      "Questions or ideas? Reach us at artemdryn584@gmail.com",
+      "If you reuse content from this site, please link back to blackout.org.ua.",
+    ],
   },
   ua: {
     tagline: "спільнота про графіки відключень, генератори і те, як пережити темні години",
@@ -1163,6 +1168,11 @@ const UI = {
     whatHappenedPlaceholder: "район, через що сталося, скільки тривало…",
     addToTotal: "Додати до лічильника",
     debtCleared: "відключення заявлено",
+    disclaimer: [
+      "Цей сайт створений, щоб зручно стежити за ситуацією зі світлом в Україні. Ми не обленерго і не державна структура — вся інформація береться з відкритих загальнодоступних джерел, тому ми не можемо гарантувати її точність чи якось вплинути на реальні відключення.",
+      "Є ідея чи питання? Пишіть: artemdryn584@gmail.com",
+      "Якщо використовуєте матеріали сайту — будь ласка, вказуйте посилання на blackout.org.ua.",
+    ],
   },
 };
 
@@ -2413,6 +2423,14 @@ export default function LedgerForum() {
           </div>
         </div>
       )}
+
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 20px 30px", borderTop: `1px solid ${border}`, marginTop: 20 }}>
+        {t.disclaimer.map((paragraph, i) => (
+          <p key={i} style={{ fontSize: 12, color: textSoft, lineHeight: 1.6, margin: i === 0 ? "16px 0 8px" : "0 0 8px" }}>
+            {paragraph}
+          </p>
+        ))}
+      </div>
 
     </div>
   );
