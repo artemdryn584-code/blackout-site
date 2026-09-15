@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock, ChevronDown } from "lucide-react";
+import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock, ChevronDown, Sun, Moon } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient";
 
 const BACKEND_URL = "https://outage-schedule-backend.onrender.com";
@@ -1080,7 +1080,7 @@ const OBLAST_LABEL_COLOR = {
 };
 const mapLabelActiveColor = "#ffffff";
 
-const FONT = "'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif";
+const FONT = "'Golos Text', -apple-system, 'Segoe UI', sans-serif";
 
 const SECTION_DEFS = [
   { id: "schedule", icon: Clock },
@@ -1310,6 +1310,32 @@ function timeAgo(isoString, lang) {
 
 export default function LedgerForum() {
   const [lang, setLang] = useState("ua");
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem("blackout_theme") || "light"; } catch { return "light"; }
+  });
+  const isDark = theme === "dark";
+  useEffect(() => {
+    try { localStorage.setItem("blackout_theme", theme); } catch {}
+  }, [theme]);
+
+  const bg = isDark ? "#101216" : "#faf9f6";
+  const card = isDark ? "#191c22" : "#ffffff";
+  const border = isDark ? "#2b2f37" : "#e4e5e0";
+  const text = isDark ? "#f1f2f4" : "#14171d";
+  const textSoft = isDark ? "#a2a8b3" : "#5c6472";
+  const orange = isDark ? "#4c8dff" : "#0057b7"; // было Reddit-оранжевым, теперь синій прапора (имя оставили как есть, чтобы не трогать остальной файл)
+  const orangeSoft = isDark ? "rgba(76,141,255,0.18)" : "rgba(0,87,183,0.10)";
+  const upvoteBlue = isDark ? "#c9b100" : "#a37f00"; // цвет даунвоута — теперь жовтий прапора, раз синій зайнятий основним акцентом
+  const danger = isDark ? "#FF6B57" : "#D93025";
+  const dangerSoft = isDark ? "rgba(255,107,87,0.16)" : "rgba(217,48,37,0.10)";
+  const gold = isDark ? "#FFC93C" : "#B8860B";
+  const goldSoft = isDark ? "rgba(255,201,60,0.14)" : "rgba(184,134,11,0.12)";
+  const green = isDark ? "#4ADE80" : "#1E8E5A";
+  const greenSoft = isDark ? "rgba(74,222,128,0.14)" : "rgba(30,142,90,0.10)";
+  const neutralSoft = isDark ? "#21252c" : "#f2f1ec";
+  const inputBg = isDark ? "#21252c" : "#f2f1ec";
+  const flagYellow = "#ffd500"; // новый — желтый флага, для мелких акцентов
+  const circleColor = isDark ? "#262a32" : "#cfd0c8";
   const t = UI[lang];
   const sectionName = id => SECTION_NAMES[lang][id];
   const [activeTab, setActiveTab] = useState("schedule");
@@ -1740,9 +1766,9 @@ export default function LedgerForum() {
   const isManualOverride = Boolean(manualOverrides[selectedEntryKey]);
 
   return (
-    <div style={{ background: bg, minHeight: "100vh", color: text, fontFamily: FONT, overflowX: "hidden", width: "100%" }}>
+    <div style={{ background: bg, minHeight: "100vh", color: text, fontFamily: FONT, overflowX: "hidden", width: "100%", position: "relative", zIndex: 0 }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .schedule-scroll::-webkit-scrollbar { height: 0; display: none; }
         .schedule-scroll { scrollbar-width: none; -ms-overflow-style: none; }
@@ -1763,6 +1789,14 @@ export default function LedgerForum() {
         .tab-alert-dot { animation: alert-pulse 1.6s ease-in-out infinite; }
       `}</style>
 
+      {/* декоративные круги — фон, отрисовываются позади всего контента и скроллятся вместе со страницей */}
+      <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", zIndex: -1, pointerEvents: "none" }}>
+        <div style={{ position: "absolute", width: 260, height: 260, borderRadius: "50%", background: circleColor, filter: "blur(2px)", opacity: isDark ? 0.5 : 0.7, top: -90, right: "8%" }} />
+        <div style={{ position: "absolute", width: 140, height: 140, borderRadius: "50%", background: circleColor, filter: "blur(2px)", opacity: isDark ? 0.4 : 0.6, top: 340, left: "2%" }} />
+        <div style={{ position: "absolute", width: 90, height: 90, borderRadius: "50%", background: circleColor, filter: "blur(2px)", opacity: isDark ? 0.4 : 0.6, top: 700, right: "12%" }} />
+        <div style={{ position: "absolute", width: 46, height: 46, borderRadius: "50%", border: `2px solid ${flagYellow}`, opacity: 0.5, top: 120, right: "20%" }} />
+      </div>
+
       {/* header — Reddit-style top nav */}
       <div style={{ background: card, borderBottom: `1px solid ${border}`, position: "sticky", top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
@@ -1770,9 +1804,20 @@ export default function LedgerForum() {
             <div className="logo-bulb" style={{ width: 32, height: 32, borderRadius: "50%", background: orange, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
               <Lightbulb size={18} />
             </div>
-            <h1 style={{ fontWeight: 700, fontSize: 19, letterSpacing: "-0.01em", margin: 0 }}>blackout</h1>
+            <h1 style={{ fontWeight: 700, fontSize: 19, letterSpacing: "-0.01em", margin: 0, fontFamily: "'Unbounded', sans-serif" }}>blackout</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <button
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              title={isDark ? (lang === "ua" ? "Світла тема" : "Light theme") : (lang === "ua" ? "Темна тема" : "Dark theme")}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 999,
+                border: `1px solid ${border}`, background: "transparent", color: textSoft, cursor: "pointer",
+              }}
+            >
+              {isDark ? <Sun size={14} /> : <Moon size={14} />}
+            </button>
             <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${border}`, borderRadius: 999, padding: 3 }}>
               <Globe size={14} style={{ marginLeft: 6, color: textSoft }} />
               {["en", "ua"].map(code => (
