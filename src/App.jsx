@@ -1144,7 +1144,7 @@ const mapChemicalDistrict = "#b7ea35";
 const mapNuclearDistrict = "#000000";
 const mapLabelText = "#eef2f8";
 const mapLabelHalo = "rgba(4,6,12,0.85)";
-const mapOblastBorder = "rgba(160,178,204,0.4)";
+const mapOblastBorder = "rgba(8,10,15,0.55)";
 
 // alerts.in.ua doesn't paint every oblast name the same colour — each one
 // keeps its own identity colour (a 4-colour rotation: blue/pink/olive/green,
@@ -1648,7 +1648,7 @@ export default function LedgerForum() {
         const cy = wSum > 0 ? wSumY / wSum : (minY + maxY) / 2;
         const boxW = maxX - minX;
         const boxH = maxY - minY;
-        const fontSize = Math.max(12, Math.min(20, Math.min(boxW, boxH) * 0.12));
+        const fontSize = Math.max(15, Math.min(26, Math.min(boxW, boxH) * 0.15));
         const shortName = oblast
           .replace("Автономна Республіка Крим", "АР Крим")
           .replace(" область", "");
@@ -1672,7 +1672,7 @@ export default function LedgerForum() {
           capitalLabel.setAttribute("x", cx);
           capitalLabel.setAttribute("y", cy + fontSize * 2.9);
           capitalLabel.setAttribute("class", "map-capital-label");
-          capitalLabel.style.fontSize = `${Math.max(12, fontSize * 0.72)}px`;
+          capitalLabel.style.fontSize = `${Math.max(13, fontSize * 0.72)}px`;
           capitalLabel.textContent = "м. Київ";
           layer.appendChild(capitalLabel);
         }
