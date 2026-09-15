@@ -1801,9 +1801,19 @@ export default function LedgerForum() {
       <div style={{ background: card, borderBottom: `1px solid ${border}`, position: "sticky", top: 0, zIndex: 20 }}>
         <div style={{ maxWidth: 1000, margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div className="logo-bulb" style={{ width: 32, height: 32, borderRadius: "50%", background: orange, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
-              <Lightbulb size={18} />
-            </div>
+            <svg viewBox="0 0 512 512" width="32" height="32" className="logo-bulb" style={{ flexShrink: 0, borderRadius: 10 }}>
+              <defs>
+                <filter id="logoShadow" x="-20%" y="-20%" width="140%" height="140%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="4" floodOpacity="0.25" />
+                </filter>
+              </defs>
+              <rect width="512" height="512" rx="104" ry="104" fill="#142238" />
+              <g filter="url(#logoShadow)">
+                <rect x="66" y="176" width="380" height="160" rx="10" fill="#0057B7" />
+                <rect x="66" y="256" width="380" height="80" fill="#FFD700" />
+              </g>
+              <path d="M58 4 L20 56 L42 56 L34 98 L82 38 L56 38 Z" fill="#ffffff" transform="translate(100,96) scale(3.125)" />
+            </svg>
             <h1 style={{ fontWeight: 700, fontSize: 19, letterSpacing: "-0.01em", margin: 0, fontFamily: "'Unbounded', sans-serif" }}>blackout</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
