@@ -1127,10 +1127,11 @@ const UI = {
     whatHappenedPlaceholder: "neighborhood, what caused it, how long it lasted…",
     addToTotal: "Add to total",
     debtCleared: "outage reported",
+    disclaimerTitle: "NOTICE",
     disclaimer: [
-      "This site was built to make it easier to follow the power situation across Ukraine. We're not a utility company or a government body — all information comes from public sources, so we can't guarantee its accuracy or affect real outage schedules.",
-      "Questions or ideas? Reach us at artemdryn584@gmail.com",
-      "If you reuse content from this site, please link back to blackout.org.ua.",
+      { text: "This site was built to make it easier to follow the power situation across Ukraine." },
+      { text: "We're not a utility company or a government body — all information comes from public sources, so we can't guarantee its accuracy or affect real outage schedules.", bold: true },
+      { text: "If you reuse content from this site, please link back to blackout.org.ua." },
     ],
   },
   ua: {
@@ -1168,10 +1169,11 @@ const UI = {
     whatHappenedPlaceholder: "район, через що сталося, скільки тривало…",
     addToTotal: "Додати до лічильника",
     debtCleared: "відключення заявлено",
+    disclaimerTitle: "УВАГА",
     disclaimer: [
-      "Цей сайт створений, щоб зручно стежити за ситуацією зі світлом в Україні. Ми не обленерго і не державна структура — вся інформація береться з відкритих загальнодоступних джерел, тому ми не можемо гарантувати її точність чи якось вплинути на реальні відключення.",
-      "Є ідея чи питання? Пишіть: artemdryn584@gmail.com",
-      "Якщо використовуєте матеріали сайту — будь ласка, вказуйте посилання на blackout.org.ua.",
+      { text: "Цей сайт створений, щоб зручно стежити за ситуацією зі світлом в Україні." },
+      { text: "Ми не обленерго і не державна структура — вся інформація береться з відкритих загальнодоступних джерел, тому ми не можемо гарантувати її точність чи якось вплинути на реальні відключення.", bold: true },
+      { text: "Якщо використовуєте матеріали сайту — будь ласка, вказуйте посилання на blackout.org.ua." },
     ],
   },
 };
@@ -2424,12 +2426,27 @@ export default function LedgerForum() {
         </div>
       )}
 
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 20px 30px", borderTop: `1px solid ${border}`, marginTop: 20 }}>
-        {t.disclaimer.map((paragraph, i) => (
-          <p key={i} style={{ fontSize: 12, color: textSoft, lineHeight: 1.6, margin: i === 0 ? "16px 0 8px" : "0 0 8px" }}>
-            {paragraph}
-          </p>
-        ))}
+      <div style={{ maxWidth: 1000, margin: "20px auto 0", padding: "0 20px 30px" }}>
+        <div style={{ background: card, border: `1px solid ${orange}`, borderRadius: 8, padding: "14px 16px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, fontWeight: 700, fontSize: 12.5, color: orange, marginBottom: 8, textTransform: "uppercase" }}>
+            <AlertTriangle size={14} />
+            {t.disclaimerTitle}
+          </div>
+          {t.disclaimer.map((paragraph, i) => (
+            <p
+              key={i}
+              style={{
+                fontSize: 12.5,
+                color: textSoft,
+                lineHeight: 1.6,
+                fontWeight: paragraph.bold ? 700 : 400,
+                margin: i === t.disclaimer.length - 1 ? 0 : "0 0 8px",
+              }}
+            >
+              {paragraph.text}
+            </p>
+          ))}
+        </div>
       </div>
 
     </div>
