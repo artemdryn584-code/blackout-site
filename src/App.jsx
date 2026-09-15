@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock } from "lucide-react";
+import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock, ChevronDown } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient";
 
 const BACKEND_URL = "https://outage-schedule-backend.onrender.com";
@@ -1215,6 +1215,33 @@ const REGION_OPTIONS = [
   { slug: "sevastopol", name: "Севастополь" },
 ];
 
+const SCHEDULE_FAQ = [
+  {
+    q: "Чому графік на сайті відрізняється від реального відключення у мене вдома?",
+    a: "Графіки погодинних відключень — це плановий орієнтир від обленерго, а не гарантія. Реальні відключення можуть зсуватися через аварійні відключення, ремонтні роботи або зміни в енергосистемі. Дані на сайті — з відкритих джерел і можуть оновлюватися із затримкою.",
+  },
+  {
+    q: "Як дізнатися свою чергу відключень?",
+    a: "Номер черги зазвичай вказаний у платіжці за електроенергію або на сайті вашого обленерго за адресою. Оберіть свою область і чергу у фільтрах вище, щоб побачити орієнтовний графік.",
+  },
+  {
+    q: "Що робити, якщо світла немає довше, ніж вказано у графіку?",
+    a: "Це може бути аварійне відключення, не пов'язане з плановим графіком. Перевірте офіційний Telegram-канал свого обленерго — там зазвичай повідомляють про терміни усунення. Можете також написати про це на форумі нижче — іншим буде корисно знати.",
+  },
+  {
+    q: "Наскільки точні дані про повітряну тривогу на карті?",
+    a: "Карта показує стан тривог по районах на основі відкритих даних і оновлюється автоматично. Для рішень, пов'язаних із безпекою, завжди орієнтуйтеся на офіційні сирени та застосунок «Повітряна тривога».",
+  },
+  {
+    q: "Чи можна довіряти прогнозу на завтра?",
+    a: "Графік на завтра публікується обленерго ближче до вечора і може ще змінитися. Якщо блок «Завтра» порожній — значить, оператор ще не оприлюднив дані.",
+  },
+  {
+    q: "Хто веде цей сайт?",
+    a: "Це незалежний проєкт для зручного відстеження ситуації зі світлом, не пов'язаний з обленерго чи державними органами. Детальніше — у застереженні внизу сторінки.",
+  },
+];
+
 function operatorLabel(initiator) {
   if (!initiator) return "";
   if (initiator.endsWith("_uz")) return "Укрзалізниця";
@@ -1296,6 +1323,7 @@ export default function LedgerForum() {
   const [activeSection, setActiveSection] = useState("all");
   const [sort, setSort] = useState("top");
   const [openPost, setOpenPost] = useState(null);
+  const [openFaq, setOpenFaq] = useState(null);
   const [showCompose, setShowCompose] = useState(false);
   const [session, setSession] = useState(null);
   useEffect(() => {
@@ -2076,6 +2104,35 @@ export default function LedgerForum() {
                 {SCHEDULE_UI.reset}
               </button>
             </div>
+          </div>
+
+          <div style={{ marginTop: 14, background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
+            <div style={{ fontWeight: 700, fontSize: 13, color: textSoft, marginBottom: 4, textTransform: "uppercase" }}>
+              Часті запитання
+            </div>
+            {SCHEDULE_FAQ.map((item, i) => {
+              const isOpen = openFaq === i;
+              return (
+                <div key={i} style={{ borderTop: i === 0 ? "none" : `1px solid ${border}` }}>
+                  <button
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                    style={{
+                      width: "100%", background: "none", border: "none", cursor: "pointer",
+                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                      padding: "14px 0", textAlign: "left", fontSize: 14, fontWeight: 700, color: text,
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {item.q}
+                    <ChevronDown size={16} color={textSoft} style={{ flexShrink: 0, transition: "transform 0.2s", transform: isOpen ? "rotate(180deg)" : "none" }} />
+                  </button>
+                  {/* answer stays in the DOM (just visually collapsed) so it's still crawlable/indexable */}
+                  <div style={{ display: isOpen ? "block" : "none", fontSize: 13.5, color: textSoft, lineHeight: 1.6, paddingBottom: 14 }}>
+                    {item.a}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
