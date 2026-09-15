@@ -1672,10 +1672,40 @@ export default function LedgerForum() {
           capitalLabel.setAttribute("x", cx);
           capitalLabel.setAttribute("y", cy + fontSize * 2.9);
           capitalLabel.setAttribute("class", "map-capital-label");
-          capitalLabel.style.fontSize = `${Math.max(13, fontSize * 0.72)}px`;
+          capitalLabel.style.fontSize = `${Math.max(15, fontSize * 0.9)}px`;
           capitalLabel.textContent = "м. Київ";
           layer.appendChild(capitalLabel);
         }
+      });
+
+      // A couple of other major cities get the same small pin + name treatment
+      // as the capital, matching alerts.in.ua's own map — anchored to their
+      // own raion's real geometry (unlike Kyiv, which has no separate city
+      // polygon in this data and falls back to the oblast centroid above).
+      // Sevastopol has no distinct raion in this dataset at all, so it's
+      // left out rather than guessing its position.
+      [
+        { city: "м. Харків", selector: 'path[data-city="м. Харків"]' },
+        { city: "м. Запоріжжя", selector: 'path[data-city="м. Запоріжжя"]' },
+      ].forEach(({ city, selector }) => {
+        const cityPath = container.querySelector(selector);
+        if (!cityPath) return;
+        const b = cityPath.getBBox();
+        const cx = b.x + b.width / 2;
+        const cy = b.y + b.height / 2;
+        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dot.setAttribute("cx", cx);
+        dot.setAttribute("cy", cy);
+        dot.setAttribute("r", 4);
+        dot.setAttribute("class", "map-city-dot");
+        layer.appendChild(dot);
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.setAttribute("x", cx);
+        label.setAttribute("y", cy + 20);
+        label.setAttribute("class", "map-capital-label");
+        label.style.fontSize = "15px";
+        label.textContent = city;
+        layer.appendChild(label);
       });
       svg.appendChild(layer);
     }
@@ -2521,6 +2551,7 @@ export default function LedgerForum() {
               }
               .map-capital-pin { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; transition: fill 0.5s ease; }
               .map-capital-pin.active-alert { fill: ${mapAirRaidDistrict}; }
+              .map-city-dot { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; }
             `}</style>
             <div style={{ position: "relative", background: mapBg, borderRadius: 8, overflow: "hidden", border: `1px solid ${border}` }}>
               <div
