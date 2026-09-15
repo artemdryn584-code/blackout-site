@@ -1311,7 +1311,7 @@ function timeAgo(isoString, lang) {
 export default function LedgerForum() {
   const [lang, setLang] = useState("ua");
   const [theme, setTheme] = useState(() => {
-    try { return localStorage.getItem("blackout_theme") || "light"; } catch { return "light"; }
+    try { return localStorage.getItem("blackout_theme") || "dark"; } catch { return "dark"; }
   });
   const isDark = theme === "dark";
   useEffect(() => {
