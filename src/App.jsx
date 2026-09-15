@@ -1862,7 +1862,7 @@ export default function LedgerForum() {
             <div className="logo-bulb" style={{ width: 32, height: 32, borderRadius: "50%", background: orange, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
               <Lightbulb size={18} />
             </div>
-            <span style={{ fontWeight: 700, fontSize: 19, letterSpacing: "-0.01em" }}>blackout</span>
+            <h1 style={{ fontWeight: 700, fontSize: 19, letterSpacing: "-0.01em", margin: 0 }}>blackout</h1>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 4, border: `1px solid ${border}`, borderRadius: 999, padding: 3 }}>
@@ -1891,7 +1891,7 @@ export default function LedgerForum() {
           </div>
         </div>
         <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 20px 10px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <span style={{ fontSize: 12.5, color: textSoft }}>{t.tagline}</span>
+          <h2 style={{ fontSize: 12.5, color: textSoft, fontWeight: 400, margin: 0 }}>{t.tagline}</h2>
           {lang === "ua" && (airAlerts.length > 0 || hoursOffCount > 0) && (
             <span style={{ fontSize: 12, color: textSoft, display: "flex", alignItems: "center", gap: 6 }}>
               <span style={{ color: border }}>·</span>
@@ -1951,7 +1951,7 @@ export default function LedgerForum() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <Siren size={18} color={danger} />
-                <div style={{ fontWeight: 700, fontSize: 16 }}>{AIR_ALERT_UI.title}</div>
+                <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0 }}>{AIR_ALERT_UI.title}</h2>
               </div>
               <button
                 onClick={fetchAirAlerts}
@@ -2007,7 +2007,7 @@ export default function LedgerForum() {
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
             <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 10 }}>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{SCHEDULE_UI.title}</div>
+                <h2 style={{ fontWeight: 700, fontSize: 16, margin: "0 0 4px" }}>{SCHEDULE_UI.title}</h2>
                 <div style={{ fontSize: 12.5, color: textSoft, maxWidth: "60ch", lineHeight: 1.5 }}>
                   {liveMode
                     ? "Дані підтягнуто з неофіційного агрегатора alerts.energy — можуть відрізнятись від реальності, перевіряйте на офіційних ресурсах для важливих рішень."
@@ -2351,9 +2351,9 @@ export default function LedgerForum() {
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "16px 18px" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>
+                <h2 style={{ fontWeight: 700, fontSize: 16, margin: 0 }}>
                   {lang === "ua" ? "Карта — повітряна тривога" : "Map — air raid alerts"}
-                </div>
+                </h2>
                 {airAlerts.length > 0 && (
                   <span style={{ fontSize: 12.5, fontWeight: 700, color: danger }}>
                     {airAlerts.length} {lang === "ua" ? "активних тривог" : "active alerts"}
