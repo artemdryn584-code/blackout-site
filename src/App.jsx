@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff } from "lucide-react";
+import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient";
 
 const BACKEND_URL = "https://outage-schedule-backend.onrender.com";
@@ -1285,6 +1285,16 @@ export default function LedgerForum() {
   const [sort, setSort] = useState("top");
   const [openPost, setOpenPost] = useState(null);
   const [showCompose, setShowCompose] = useState(false);
+  const [session, setSession] = useState(null);
+  useEffect(() => {
+    if (!supabase) return;
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+    });
+    return () => listener.subscription.unsubscribe();
+  }, []);
+  const isAdmin = Boolean(session);
   const [voteState, setVoteState] = useState({});
   const [commentDraft, setCommentDraft] = useState("");
   const [composeTitle, setComposeTitle] = useState("");
@@ -1531,6 +1541,25 @@ export default function LedgerForum() {
     return list;
   }, [posts, activeSection, sort]);
 
+  async function handleAdminClick() {
+    if (!supabase) return;
+    if (isAdmin) {
+      const confirmMsg = lang === "ua" ? "Вийти з режиму адміна?" : "Log out of admin mode?";
+      if (window.confirm(confirmMsg)) {
+        await supabase.auth.signOut();
+      }
+      return;
+    }
+    const email = window.prompt(lang === "ua" ? "Email:" : "Email:");
+    if (!email) return;
+    const password = window.prompt(lang === "ua" ? "Пароль:" : "Password:");
+    if (!password) return;
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      window.alert(lang === "ua" ? "Не вдалося увійти: перевір email і пароль" : "Sign-in failed: check email and password");
+    }
+  }
+
   function castVote(postId, dir) {
     const current = voteState[postId] || 0;
     const next = current === dir ? 0 : dir;
@@ -1722,11 +1751,29 @@ export default function LedgerForum() {
               ))}
             </div>
             <button
-              onClick={() => setShowCompose(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: orange, color: "#fff", border: "none", borderRadius: 999, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+              onClick={handleAdminClick}
+              title={isAdmin
+                ? (lang === "ua" ? "Режим адміна (вийти)" : "Admin mode (log out)")
+                : (lang === "ua" ? "Вхід для адміна" : "Admin login")}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center",
+                width: 32, height: 32, borderRadius: 999,
+                border: `1px solid ${border}`,
+                background: isAdmin ? orange : "transparent",
+                color: isAdmin ? "#fff" : textSoft,
+                cursor: "pointer",
+              }}
             >
-              <Plus size={16} /> {t.newPost}
+              {isAdmin ? <Unlock size={14} /> : <Lock size={14} />}
             </button>
+            {isAdmin && (
+              <button
+                onClick={() => setShowCompose(true)}
+                style={{ display: "flex", alignItems: "center", gap: 6, background: orange, color: "#fff", border: "none", borderRadius: 999, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
+              >
+                <Plus size={16} /> {t.newPost}
+              </button>
+            )}
           </div>
         </div>
         <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 20px 10px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
