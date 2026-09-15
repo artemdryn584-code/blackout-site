@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
 import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff } from "lucide-react";
+import { supabase, supabaseConfigured } from "./lib/supabaseClient";
 
 const BACKEND_URL = "https://outage-schedule-backend.onrender.com";
 
@@ -1102,6 +1103,9 @@ const UI = {
     top: "Top",
     new: "New",
     noPosts: "No posts here yet. Start the conversation.",
+    postsLoading: "Loading posts…",
+    postsError: "Couldn't reach the forum. Try again.",
+    retry: "Retry",
     comments: "comments",
     noComments: "No comments yet. Be the first to reply.",
     addComment: "Add a comment",
@@ -1122,7 +1126,6 @@ const UI = {
     whatHappened: "AREA / DETAILS (OPTIONAL)",
     whatHappenedPlaceholder: "neighborhood, what caused it, how long it lasted…",
     addToTotal: "Add to total",
-    now: "now",
     debtCleared: "outage reported",
   },
   ua: {
@@ -1136,6 +1139,9 @@ const UI = {
     top: "Топ",
     new: "Нові",
     noPosts: "Тут поки що немає постів. Почніть обговорення першим.",
+    postsLoading: "Завантажуємо пости…",
+    postsError: "Не вдалося звʼязатися з форумом. Спробуйте ще раз.",
+    retry: "Спробувати ще раз",
     comments: "коментарів",
     noComments: "Коментарів поки немає. Будьте першим.",
     addComment: "Написати коментар",
@@ -1156,7 +1162,6 @@ const UI = {
     whatHappened: "РАЙОН / ПОДРОБИЦІ (НЕОБОВʼЯЗКОВО)",
     whatHappenedPlaceholder: "район, через що сталося, скільки тривало…",
     addToTotal: "Додати до лічильника",
-    now: "щойно",
     debtCleared: "відключення заявлено",
   },
 };
@@ -1245,243 +1250,23 @@ const seedContributionsByLang = {
   ],
 };
 
-const seedPostsByLang = {
-  en: [
-    {
-      id: 1, section: "schedule", author: "u/mara_k", time: "3h",
-      title: "Today's posted schedule is already 2 hours off from what's actually happening — anyone else?",
-      body: "The queue times online don't match what's happening on my street. Is there a reliable way to track real-time changes instead of the static posted schedule?",
-      votes: 47,
-      comments: [
-        { id: 1, author: "u/jonas_b", time: "2h", votes: 12, text: "Posted schedules are often a baseline — actual load shedding shifts during the day depending on grid stress. Check for a live status channel if your utility has one." },
-        { id: 2, author: "u/priya_finds", time: "1h", votes: 5, text: "Same here, it's frustrating to plan around a schedule that changes without notice." },
-      ],
-    },
-    {
-      id: 2, section: "generators", author: "u/oldhouse_tom", time: "6h",
-      title: "Choosing a first generator — inverter vs standard, what actually matters?",
-      body: "Trying to power a fridge, router, and a few lamps during outages. Budget is limited so I want to get this right the first time.",
-      votes: 132,
-      comments: [
-        { id: 1, author: "u/frugal_frida", time: "4h", votes: 22, text: "Inverter models give cleaner power, which matters for electronics like routers and laptop chargers. Standard ones are cheaper per watt but noisier and rougher on sensitive devices." },
-        { id: 2, author: "u/dbrandt", time: "3h", votes: 8, text: "Whatever you get, never run it indoors or in an attached garage — carbon monoxide risk is real and fast-acting." },
-      ],
-    },
-    {
-      id: 3, section: "powerbanks", author: "u/signal_lost", time: "9h",
-      title: "What capacity power bank actually gets a laptop through a full outage day?",
-      body: "Trying to work through 8-10 hour outages. How many mAh or Wh have people actually needed for a laptop plus phone charging?",
-      votes: 88,
-      comments: [
-        { id: 1, author: "u/legal_aid_lena", time: "8h", votes: 31, text: "Check your laptop's watt-hour rating and work backward — most modern laptops need 40-60Wh for a full charge, so a 100Wh+ bank with a laptop-capable output gives real headroom." },
-      ],
-    },
-    {
-      id: 4, section: "complaints", author: "u/second_chance22", time: "1d",
-      title: "Utility gives zero advance notice for unplanned outages, only finds out after it happens",
-      body: "At least scheduled outages I can plan around. The unplanned ones with no warning are what actually ruin the day.",
-      votes: 210,
-      comments: [
-        { id: 1, author: "u/mara_k", time: "20h", votes: 14, text: "Following a local outage-tracking channel helped me get faster updates than waiting on the official page." },
-      ],
-    },
-    {
-      id: 5, section: "tips", author: "u/ines_v", time: "1d",
-      title: "How to keep fridge contents safe through 10-hour outages",
-      body: "Losing food every time the power's out for a long stretch. What's actually worked for people?",
-      votes: 63,
-      comments: [
-        { id: 1, author: "u/legal_aid_lena", time: "22h", votes: 19, text: "Freeze water bottles in advance and pack them around perishables, and keep the door closed as much as possible — a full fridge holds cold far longer than a half-empty one." },
-      ],
-    },
-    {
-      id: 6, section: "regions", author: "u/quiet_ledger", time: "2d",
-      title: "Neighboring district gets an hour less outage time than mine — is that normal?",
-      body: "We're on the same grid area roughly, but their posted schedule is noticeably shorter. Is that just how the queues are split up?",
-      votes: 39, comments: [],
-    },
-    {
-      id: 7, section: "schedule", author: "u/night_shift_dp", time: "5h",
-      title: "Any way to see tomorrow's schedule the evening before, not the morning of?",
-      body: "I keep only seeing tomorrow's schedule in the morning, when it's too late to plan work around it. Anyone found a source that posts earlier?",
-      votes: 28,
-      comments: [
-        { id: 1, author: "u/frugal_frida", time: "3h", votes: 9, text: "Most providers publish the next-day schedule sometime between 6-9pm, but it's not guaranteed — sometimes it's late." },
-      ],
-    },
-    {
-      id: 8, section: "generators", author: "u/basement_workshop", time: "8h",
-      title: "How loud is a 2kW gas generator in practice — will neighbors hate me?",
-      body: "I'm in an apartment building, balcony faces the courtyard. Want to get a small generator but worried about noise complaints.",
-      votes: 51,
-      comments: [
-        { id: 1, author: "u/dbrandt", time: "6h", votes: 14, text: "A regular gas one at 2kW is roughly vacuum-cleaner loud up close. In an apartment courtyard that's genuinely annoying, especially at night." },
-        { id: 2, author: "u/quiet_ledger", time: "5h", votes: 8, text: "Inverter models are noticeably quieter than conventional ones at the same output, worth factoring in." },
-      ],
-    },
-    {
-      id: 9, section: "powerbanks", author: "u/remote_worker_kh", time: "1d",
-      title: "My power bank started holding way less charge after a few months of daily use — normal?",
-      body: "Got a 20000 mAh power bank in spring, now in fall it's holding maybe half the rated capacity. Is that just wear, or a defect?",
-      votes: 34,
-      comments: [
-        { id: 1, author: "u/legal_aid_lena", time: "20h", votes: 11, text: "Li-ion batteries genuinely lose capacity over time and charge cycles, that's normal wear rather than necessarily a defect — but if it's dropped 20-30%+ in half a year, worth a warranty claim." },
-      ],
-    },
-    {
-      id: 10, section: "complaints", author: "u/tired_of_calling", time: "1d",
-      title: "Provider hotline doesn't answer for hours during mass outages",
-      body: "I get that load is high, but not being able to get through at all for several hours straight is a service problem, not just a grid problem.",
-      votes: 47,
-      comments: [
-        { id: 1, author: "u/mara_k", time: "18h", votes: 13, text: "In those moments it's usually faster to message their official Telegram bot if they have one — the queue there tends to be shorter than the phone line." },
-      ],
-    },
-    {
-      id: 11, section: "tips", author: "u/candle_and_book", time: "2d",
-      title: "Which actually lasts longer — battery flashlight or rechargeable USB one?",
-      body: "Want to get a proper flashlight for the house for long outages, not just my phone light. What do people actually find more reliable long-term?",
-      votes: 22,
-      comments: [],
-    },
-  ],
-  ua: [
-    {
-      id: 1, section: "schedule", author: "u/mara_k", time: "3г",
-      title: "Графік на сьогодні вже відрізняється від реальності на 2 години — у когось так само?",
-      body: "У застосунку одні часи а по факту на вулиці інша картина. Чи є надійний спосіб відстежувати зміни в реальному часі, а не орієнтуватися лише на опублікований графік?",
-      votes: 47,
-      comments: [
-        { id: 1, author: "u/jonas_b", time: "2г", votes: 12, text: "Опублікований графік — це базовий орієнтир, реальні відключення зсуваються протягом дня залежно від навантаження на мережу. Якщо є офіційний телеграм-канал обленерго з оновленнями — краще стежити там." },
-        { id: 2, author: "u/priya_finds", time: "1г", votes: 5, text: "У мене так само, важко планувати, коли графік змінюється без попередження." },
-      ],
-    },
-    {
-      id: 2, section: "generators", author: "u/oldhouse_tom", time: "6г",
-      title: "Обираю генератор вперше: інверторний чи звичайний — на що дивитися?",
-      body: "Треба живити холодильник, роутер і кілька ламп під час відключень. Бюджет обмежений хочу одразу вибрати правильно.",
-      votes: 132,
-      comments: [
-        { id: 1, author: "u/frugal_frida", time: "4г", votes: 22, text: "Інверторні дають чистішу напругу, це важливо для електроніки типу роутера чи зарядки ноутбука. Звичайні дешевші за ват, але гучніші і грубіші для чутливої техніки." },
-        { id: 2, author: "u/dbrandt", time: "3г", votes: 8, text: "Що б не обрали — ніколи не вмикайте в приміщенні чи в гаражі, що прилягає до будинку. Ризик отруєння чадним газом реальний і настає швидко." },
-      ],
-    },
-    {
-      id: 3, section: "powerbanks", author: "u/signal_lost", time: "9г",
-      title: "Яка ємність павербанка реально тримає ноутбук на весь день без світла?",
-      body: "Треба працювати під час відключень по 8-10 годин. Скільки mAh чи Wh людям реально вистачає на ноутбук плюс телефон?",
-      votes: 88,
-      comments: [
-        { id: 1, author: "u/legal_aid_lena", time: "8г", votes: 31, text: "Подивіться Wh ноутбука і рахуйте від нього — більшості сучасних потрібно 40-60Wh на повний заряд, тож павербанк від 100Wh з підтримкою живлення ноутбука дає реальний запас." },
-      ],
-    },
-    {
-      id: 4, section: "complaints", author: "u/second_chance22", time: "1д",
-      title: "Обленерго не попереджає про позапланові відключення — тільки постфактум",
-      body: "До планових ще можна підлаштуватися заздалегідь.А ось позапланові без жодного попередження реально ламають весь день.",
-      votes: 210,
-      comments: [
-        { id: 1, author: "u/mara_k", time: "20г", votes: 14, text: "Локальний телеграм-канал з відстеженням відключень дає оновлення швидше, ніж очікування офіційної сторінки." },
-      ],
-    },
-    {
-      id: 5, section: "tips", author: "u/ines_v", time: "1д",
-      title: "Як зберегти продукти в холодильнику під час відключень по 10 годин",
-      body: "Кожного разу псується частина продуктів при довгому відключенні. Що реально працює на практиці?",
-      votes: 63,
-      comments: [
-        { id: 1, author: "u/legal_aid_lena", time: "22г", votes: 19, text: "Заморозьте пляшки з водою заздалегідь і обкладіть ними швидкопсувне та тримайте дверцята закритими якомога довше — повний холодильник тримає холод значно довше, ніж напівпорожній." },
-      ],
-    },
-    {
-      id: 6, section: "regions", author: "u/quiet_ledger", time: "2д",
-      title: "У сусідньому районі відключення на годину коротші, ніж у мене — це нормально?",
-      body: "Начебто та сама енергозона, але їхній графік помітно коротший за наш.Це просто так поділили черги, чи є сенс щось зʼясовувати?",
-      votes: 39, comments: [],
-    },
-    {
-      id: 7, section: "schedule", author: "u/night_shift_dp", time: "5г",
-      title: "Чи можна дізнатись графік на завтра ввечері, а не вранці того ж дня?",
-      body: "Постійно бачу графік на завтра тільки вранці, коли вже пізно щось планувати з роботою. У когось є джерело, де публікують раніше?",
-      votes: 28,
-      comments: [
-        { id: 1, author: "u/frugal_frida", time: "3г", votes: 9, text: "У більшості обленерго графік на завтра з'являється ввечері, десь між 18:00 і 21:00, але це не гарантовано — іноді запізнюються." },
-      ],
-    },
-    {
-      id: 8, section: "generators", author: "u/basement_workshop", time: "8г",
-      title: "Скільки реально шумить бензиновий генератор на 2 кВт — сусіди не будуть проти?",
-      body: "Живу в багатоквартирному будинку, балкон виходить у двір.Хочу поставити невеликий генератор, але боюсь конфлікту з сусідами через шум.",
-      votes: 51,
-      comments: [
-        { id: 1, author: "u/dbrandt", time: "6г", votes: 14, text: "Звичайний бензиновий на 2 кВт — це приблизно рівень пилососа на близькій відстані. У дворі багатоповерхівки це реально дратує людей, особливо вночі." },
-        { id: 2, author: "u/quiet_ledger", time: "5г", votes: 8, text: "Інверторні моделі тихіші за звичайні при тій же потужності, це варто врахувати при виборі." },
-      ],
-    },
-    {
-      id: 9, section: "powerbanks", author: "u/remote_worker_kh", time: "1д",
-      title: "Павербанк почав тримати заряд значно гірше після кількох місяців щоденного використання — це нормально?",
-      body: "Купив павербанк на 20000 mAh навесні, зараз восени тримає от сили половину від заявленого.Це знос акумулятора чи брак?",
-      votes: 34,
-      comments: [
-        { id: 1, author: "u/legal_aid_lena", time: "20г", votes: 11, text: "Літій-іонні акумулятори реально втрачають ємність з часом і циклами заряду, це нормальне явище, а не обов'язково брак — але якщо втрата за пів року більше 20-30%, варто звернутись за гарантією." },
-      ],
-    },
-    {
-      id: 10, section: "complaints", author: "u/tired_of_calling", time: "1д",
-      title: "Гаряча лінія обленерго не відповідає годинами під час масових відключень",
-      body: "Розумію що навантаження велике, але коли не можеш додзвонитись взагалі кілька годин поспіль — це вже проблема самого сервісу, а не тільки мережі.",
-      votes: 47,
-      comments: [
-        { id: 1, author: "u/mara_k", time: "18г", votes: 13, text: "У такі моменти краще писати в офіційний чат-бот у Telegram, якщо він є — там черга менша, ніж на телефонній лінії." },
-      ],
-    },
-    {
-      id: 11, section: "tips", author: "u/candle_and_book", time: "2д",
-      title: "Який ліхтар реально витримує довше — на батарейках чи акумуляторний з USB-зарядкою?",
-      body: "Хочу купити нормальний ліхтар для дому на випадок довгих відключень, а не телефонний ліхтарик. Що людям реально зручніше в довгостроковому використанні?",
-      votes: 22,
-      comments: [],
-    },
-    {
-      id: 12, section: "schedule", author: "u/eastside_maryna", time: "10г",
-      title: "Обленерго додало нову чергу 7 — у кого вона теж зʼявилась?",
-      body: "Раніше було 6 черг, сьогодні в додатку побачила сьому. Це загальне розширення графіку чи щось локальне для мого району?",
-      votes: 17,
-      comments: [
-        { id: 1, author: "u/night_shift_dp", time: "8г", votes: 5, text: "У нас теж зʼявилась нова черга минулого тижня, схоже, це загальна зміна, а не локальна." },
-      ],
-    },
-    {
-      id: 13, section: "generators", author: "u/countryside_petro", time: "1д",
-      title: "Скільки палива реально йде на добу роботи генератора 3.5 кВт?",
-      body: "Прикидаю бюджет на паливо на зиму. Хто рахував реальні витрати, а не за паспортом виробника?",
-      votes: 26,
-      comments: [
-        { id: 1, author: "u/basement_workshop", time: "20г", votes: 9, text: "У мене на постійному навантаженні близько 1.5-2 кВт виходить приблизно 1 літр бензину на годину, але це дуже залежить від реального навантаження, а не максимальної потужності." },
-      ],
-    },
-    {
-      id: 14, section: "powerbanks", author: "u/city_center_dana", time: "1д",
-      title: "Чи варто брати павербанк із швидкою зарядкою 65 Вт, якщо телефон її не підтримує?",
-      body: "Дивлюсь моделі з потужною швидкою зарядкою, але мій телефон максимум на 20 Вт. Є сенс переплачувати, чи це для інших пристроїв корисно?",
-      votes: 14,
-      comments: [],
-    },
-    {
-      id: 15, section: "complaints", author: "u/west_district_ihor", time: "2д",
-      title: "У платіжці за минулий місяць нарахували повну суму, хоча світла не було половину днів",
-      body: "Формально тариф начебто не змінюється залежно від відключень, але сума виглядає так, ніби нічого не відключали взагалі. Хтось звертався з такою ситуацією?",
-      votes: 33,
-      comments: [
-        { id: 1, author: "u/legal_aid_lena", time: "1д", votes: 10, text: "Оплата за електроенергію зазвичай нараховується за фактично спожиті кіловат-години з лічильника, а не за календарні дні — тому відключення саме по собі суму не зменшує." },
-      ],
-    },
-  ],
-};
-
 function timeAgoSort(a, b) {
   return b.votes - a.votes;
+}
+
+// Real posts/comments only carry a created_at timestamp from the DB —
+// render it as the same kind of short relative label the old seed data
+// used ("3h" / "3г"), instead of storing a separately-computed string
+// that would go stale and need re-fetching on every language switch.
+function timeAgo(isoString, lang) {
+  const seconds = Math.max(0, Math.floor((Date.now() - new Date(isoString).getTime()) / 1000));
+  if (seconds < 60) return lang === "ua" ? "щойно" : "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return lang === "ua" ? `${minutes}хв` : `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return lang === "ua" ? `${hours}г` : `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return lang === "ua" ? `${days}д` : `${days}d`;
 }
 
 export default function LedgerForum() {
@@ -1493,7 +1278,9 @@ export default function LedgerForum() {
   const scheduleScrollRef = useRef(null);
   const dragState = useRef({ active: false, startX: 0, startScroll: 0 });
 
-  const [posts, setPosts] = useState(seedPostsByLang.ua);
+  const [posts, setPosts] = useState([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+  const [postsError, setPostsError] = useState("");
   const [activeSection, setActiveSection] = useState("all");
   const [sort, setSort] = useState("top");
   const [openPost, setOpenPost] = useState(null);
@@ -1516,6 +1303,38 @@ export default function LedgerForum() {
   const [airAlertsLoading, setAirAlertsLoading] = useState(true);
   const [airAlertsError, setAirAlertsError] = useState("");
   const [airAlertsCheckedAt, setAirAlertsCheckedAt] = useState(null);
+
+  async function fetchPosts() {
+    setPostsLoading(true);
+    setPostsError("");
+    if (!supabaseConfigured) {
+      setPostsError(t.postsError);
+      setPostsLoading(false);
+      return;
+    }
+    try {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*, comments(*)")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      const normalized = (data || []).map(p => ({
+        ...p,
+        comments: [...(p.comments || [])]
+          .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
+          .map(c => ({ ...c, votes: 0 })),
+      }));
+      setPosts(normalized);
+    } catch (err) {
+      setPostsError(t.postsError);
+    } finally {
+      setPostsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
 
   async function fetchAirAlerts() {
     setAirAlertsLoading(true);
@@ -1701,8 +1520,6 @@ export default function LedgerForum() {
   function switchLang(next) {
     if (next === lang) return;
     setLang(next);
-    setPosts(seedPostsByLang[next]);
-    setVoteState({});
     setOpenPost(null);
     setActiveSection("all");
     setComposeSection("schedule");
@@ -1715,39 +1532,61 @@ export default function LedgerForum() {
   }, [posts, activeSection, sort]);
 
   function castVote(postId, dir) {
-    setVoteState(prev => {
-      const current = prev[postId] || 0;
-      const next = current === dir ? 0 : dir;
-      const delta = next - current;
-      setPosts(ps => ps.map(p => p.id === postId ? { ...p, votes: p.votes + delta } : p));
-      return { ...prev, [postId]: next };
+    const current = voteState[postId] || 0;
+    const next = current === dir ? 0 : dir;
+    const delta = next - current;
+    if (delta === 0) return;
+    setVoteState(prev => ({ ...prev, [postId]: next }));
+    setPosts(ps => ps.map(p => p.id === postId ? { ...p, votes: p.votes + delta } : p));
+    if (!supabaseConfigured) return;
+    supabase.rpc("increment_post_vote", { p_id: postId, delta }).then(({ error }) => {
+      if (error) {
+        // roll back the optimistic update if the write didn't actually land
+        setVoteState(prev => ({ ...prev, [postId]: current }));
+        setPosts(ps => ps.map(p => p.id === postId ? { ...p, votes: p.votes - delta } : p));
+      }
     });
   }
 
-  function submitComment(postId) {
-    if (!commentDraft.trim()) return;
+  async function submitComment(postId) {
+    const text = commentDraft.trim();
+    if (!text || !supabaseConfigured) return;
+    const { data, error } = await supabase
+      .from("comments")
+      .insert({ post_id: postId, author: "u/you", text })
+      .select()
+      .single();
+    if (error) return;
     setPosts(ps => ps.map(p => p.id === postId
-      ? { ...p, comments: [...p.comments, { id: p.comments.length + 1, author: "u/you", time: t.now, votes: 0, text: commentDraft.trim() }] }
+      ? { ...p, comments: [...p.comments, { ...data, votes: 0 }] }
       : p));
     setCommentDraft("");
   }
 
-  function submitPost() {
+  async function submitPost() {
     if (!composeTitle.trim()) {
       setComposeError(t.titleError);
       return;
     }
-    const newPost = {
-      id: Math.max(...posts.map(p => p.id)) + 1,
-      section: composeSection,
-      author: "u/you",
-      time: t.now,
-      title: composeTitle.trim(),
-      body: composeBody.trim(),
-      votes: 1,
-      comments: [],
-    };
-    setPosts([newPost, ...posts]);
+    if (!supabaseConfigured) {
+      setComposeError(t.postsError);
+      return;
+    }
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({
+        section: composeSection,
+        author: "u/you",
+        title: composeTitle.trim(),
+        body: composeBody.trim(),
+      })
+      .select()
+      .single();
+    if (error) {
+      setComposeError(t.postsError);
+      return;
+    }
+    setPosts(ps => [{ ...data, comments: [] }, ...ps]);
     setComposeTitle("");
     setComposeBody("");
     setComposeError("");
@@ -2203,13 +2042,33 @@ export default function LedgerForum() {
             ))}
           </div>
 
-          {filtered.length === 0 && (
+          {postsLoading && (
+            <div style={{ padding: "40px 0", textAlign: "center", color: textSoft, fontSize: 14 }}>
+              {t.postsLoading}
+            </div>
+          )}
+
+          {!postsLoading && postsError && (
+            <div style={{ padding: "40px 0", textAlign: "center", color: danger, fontSize: 14 }}>
+              {postsError}
+              <div>
+                <button
+                  onClick={fetchPosts}
+                  style={{ marginTop: 10, background: "none", border: `1px solid ${border}`, borderRadius: 999, padding: "6px 14px", fontSize: 13, cursor: "pointer", color: textSoft }}
+                >
+                  {t.retry}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {!postsLoading && !postsError && filtered.length === 0 && (
             <div style={{ padding: "40px 0", textAlign: "center", color: textSoft, fontSize: 14 }}>
               {t.noPosts}
             </div>
           )}
 
-          {filtered.map(post => {
+          {!postsLoading && !postsError && filtered.map(post => {
             const Icon = SECTION_DEFS.find(s => s.id === post.section).icon;
             const isOpen = openPost === post.id;
             const myVote = voteState[post.id] || 0;
@@ -2235,7 +2094,7 @@ export default function LedgerForum() {
                     <span>·</span>
                     <span>{post.author}</span>
                     <span>·</span>
-                    <span>{post.time}</span>
+                    <span>{timeAgo(post.created_at, lang)}</span>
                   </div>
                   <div
                     onClick={() => setOpenPost(isOpen ? null : post.id)}
@@ -2264,17 +2123,11 @@ export default function LedgerForum() {
                   {isOpen && (
                     <div style={{ marginTop: 14, borderTop: `1px solid ${border}`, paddingTop: 14 }}>
                       {post.comments.map(c => (
-                        <div key={c.id} style={{ display: "flex", gap: 10, marginBottom: 12, paddingLeft: 10, borderLeft: `2px solid ${border}` }}>
-                          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", fontSize: 11, color: textSoft, minWidth: 18 }}>
-                            <ArrowBigUp size={14} />
-                            {c.votes}
+                        <div key={c.id} style={{ marginBottom: 12, paddingLeft: 10, borderLeft: `2px solid ${border}` }}>
+                          <div style={{ fontSize: 12, color: textSoft, marginBottom: 3 }}>
+                            <span style={{ fontWeight: 700, color: text }}>{c.author}</span> · {timeAgo(c.created_at, lang)}
                           </div>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ fontSize: 12, color: textSoft, marginBottom: 3 }}>
-                              <span style={{ fontWeight: 700, color: text }}>{c.author}</span> · {c.time}
-                            </div>
-                            <div style={{ fontSize: 14, lineHeight: 1.5, color: text }}>{c.text}</div>
-                          </div>
+                          <div style={{ fontSize: 14, lineHeight: 1.5, color: text }}>{c.text}</div>
                         </div>
                       ))}
                       {post.comments.length === 0 && (
