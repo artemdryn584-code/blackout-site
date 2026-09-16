@@ -448,13 +448,12 @@ export default function LedgerForum() {
 
   // alerts.in.ua reports Kyiv city itself as its own pseudo-oblast
   // ("м. Київ"), but this district map has no separate city polygon for
-  // it — the capital's raions are folded into "Київська область". Route
-  // that one label to the oblast so a capital-only alert still lights
-  // something up, and flag it so we can also drop a capital marker.
-  function resolveOblast(name) {
-    if (name === "м. Київ") return "Київська область";
-    return name;
-  }
+  // it — the capital's raions are folded into "Київська область". A
+  // city-only alert used to also tint the whole oblast via that fold,
+  // which reads as "the region is under alert" when really it's just the
+  // capital. Kept separate now: "м. Київ" only ever sets the capital pin
+  // (kyivCityHit below); the oblast's own districts light up solely from
+  // their own real district/oblast-level alerts, if any.
 
   // Recolor the map whenever it's the visible tab (paths only exist in the
   // DOM once dangerouslySetInnerHTML has mounted them) or whenever the
@@ -493,17 +492,22 @@ export default function LedgerForum() {
     let kyivCityHit = false;
 
     airAlerts.forEach(a => {
+      if (a.location_oblast === "м. Київ") {
+        // City-level alert with no district of its own — only the capital
+        // pin lights up, the oblast's districts stay whatever their own
+        // real alerts say.
+        kyivCityHit = true;
+        return;
+      }
       const kind = alertKind(a.alert_type);
-      if (a.location_oblast === "м. Київ") kyivCityHit = true;
       let matched = false;
       const districts = findDistrict(a.location_raion) || findDistrict(a.location_title);
       if (districts) {
         districts.forEach(d => d.classList.add("active-alert", `kind-${kind}`));
         matched = true;
       }
-      const oblast = resolveOblast(a.location_oblast);
-      if (!matched && oblast) {
-        container.querySelectorAll(`[data-oblast="${CSS.escape(oblast)}"]`).forEach(d => {
+      if (!matched && a.location_oblast) {
+        container.querySelectorAll(`[data-oblast="${CSS.escape(a.location_oblast)}"]`).forEach(d => {
           // a precise district hit always wins over an oblast-wide tint
           if (!d.classList.contains("active-alert")) d.classList.add("oblast-alert", `kind-${kind}`);
         });
