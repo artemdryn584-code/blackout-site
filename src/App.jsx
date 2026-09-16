@@ -285,7 +285,7 @@ const seedContributionsByLang = {
   ],
 };
 
-function timeAgoSort(a, b) {
+function votesSort(a, b) {
   return b.votes - a.votes;
 }
 
@@ -638,7 +638,7 @@ export default function LedgerForum() {
 
   const filtered = useMemo(() => {
     let list = activeSection === "all" ? posts : posts.filter(p => p.section === activeSection);
-    list = [...list].sort(sort === "top" ? timeAgoSort : (a, b) => a.id - b.id);
+    list = [...list].sort(sort === "top" ? votesSort : (a, b) => new Date(b.created_at) - new Date(a.created_at));
     return list;
   }, [posts, activeSection, sort]);
 
