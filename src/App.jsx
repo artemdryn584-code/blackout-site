@@ -1653,7 +1653,7 @@ export default function LedgerForum() {
         const cy = wSum > 0 ? wSumY / wSum : (minY + maxY) / 2;
         const boxW = maxX - minX;
         const boxH = maxY - minY;
-        const fontSize = Math.max(23, Math.min(38, Math.min(boxW, boxH) * 0.23));
+        const fontSize = Math.max(25, Math.min(40, Math.min(boxW, boxH) * 0.25));
         const shortName = oblast
           .replace("Автономна Республіка Крим", "АР Крим")
           .replace(" область", "");
@@ -1677,7 +1677,7 @@ export default function LedgerForum() {
           capitalLabel.setAttribute("x", cx);
           capitalLabel.setAttribute("y", cy + fontSize * 2.9);
           capitalLabel.setAttribute("class", "map-capital-label");
-          capitalLabel.style.fontSize = `${Math.max(22, fontSize * 0.95)}px`;
+          capitalLabel.style.fontSize = `${Math.max(24, fontSize * 0.95)}px`;
           capitalLabel.textContent = "м. Київ";
           layer.appendChild(capitalLabel);
         }
@@ -1708,7 +1708,7 @@ export default function LedgerForum() {
         label.setAttribute("x", cx);
         label.setAttribute("y", cy + 28);
         label.setAttribute("class", "map-capital-label");
-        label.style.fontSize = "22px";
+        label.style.fontSize = "24px";
         label.textContent = city;
         layer.appendChild(label);
       });
