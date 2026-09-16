@@ -5,18 +5,19 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "node scripts/build-oblast-borders.mjs",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",
     "lucide-react": "^0.383.0",
-    "polygon-clipping": "^0.15.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
+    "polygon-clipping": "^0.15.7",
     "vite": "^5.4.0"
   }
 }
