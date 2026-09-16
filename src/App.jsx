@@ -1429,7 +1429,7 @@ export default function LedgerForum() {
                 : "Data from the official alerts.in.ua API — for real safety decisions use sirens. · blackout.org.ua"}
             </div>
             <style>{`
-              .map-district { fill: ${mapNoAlert}; stroke: none; transition: fill 0.5s ease; }
+              .map-district { fill: ${mapNoAlert}; stroke: none; }
               .map-district.kind-air { fill: ${mapAirRaidDistrict}; }
               .map-district.kind-artillery { fill: ${mapArtilleryDistrict}; }
               .map-district.kind-urban { fill: ${mapUrbanDistrict}; }
@@ -1447,7 +1447,7 @@ export default function LedgerForum() {
                 text-anchor: middle; pointer-events: none;
                 paint-order: stroke; stroke: ${mapLabelHalo}; stroke-width: 3px; stroke-linejoin: round;
               }
-              .map-capital-pin { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; transition: fill 0.5s ease; }
+              .map-capital-pin { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; }
               .map-capital-pin.active-alert { fill: ${mapAirRaidDistrict}; }
               .map-city-dot { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; }
             `}</style>
