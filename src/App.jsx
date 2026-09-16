@@ -1038,7 +1038,7 @@ export default function LedgerForum() {
                   value={selectedEntryKey || ""}
                   onChange={e => { setSelectedEntryKey(e.target.value); setLiveMode(true); }}
                   disabled={scheduleEntries.length === 0}
-                  style={{ padding: "6px 8px", border: `1px solid ${border}`, borderRadius: 6, fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text }}
+                  style={{ padding: "6px 8px", border: `1px solid ${border}`, borderRadius: 6, fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text, width: 170, maxWidth: 170 }}
                 >
                   {scheduleEntries.length === 0 && <option value="">—</option>}
                   {scheduleEntries.map(e => {
@@ -1061,7 +1061,7 @@ export default function LedgerForum() {
 
             <div style={{
               display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, marginBottom: 12,
-              padding: "8px 10px", borderRadius: 6,
+              padding: "8px 10px", borderRadius: 6, minHeight: 36,
               background: liveMode ? greenSoft : liveError ? dangerSoft : neutralSoft,
               color: liveMode ? green : liveError ? danger : textSoft,
             }}>
