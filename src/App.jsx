@@ -1905,7 +1905,6 @@ export default function LedgerForum() {
   return (
     <div style={{ background: bg, minHeight: "100vh", color: text, fontFamily: FONT, overflowX: "hidden", width: "100%", position: "relative", zIndex: 0 }}>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .schedule-scroll::-webkit-scrollbar { height: 0; display: none; }
         .schedule-scroll { scrollbar-width: none; -ms-overflow-style: none; }
