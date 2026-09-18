@@ -1613,6 +1613,9 @@ export default function LedgerForum() {
               {paragraph.text}
             </p>
           ))}
+          <a href="/privacy.html" style={{ fontSize: 12, color: orange, display: "inline-block", marginTop: 10 }}>
+            {lang === "ua" ? "Політика конфіденційності" : "Privacy Policy"}
+          </a>
         </div>
       </div>
 
