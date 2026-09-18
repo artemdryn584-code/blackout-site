@@ -981,6 +981,9 @@ export default function LedgerForum() {
               <AlertTriangle size={16} color={danger} style={{ flexShrink: 0, marginTop: 2 }} />
               <div style={{ fontSize: 13, color: text, lineHeight: 1.5 }}>{AIR_ALERT_UI.disclaimer}</div>
             </div>
+            <p style={{ fontSize: 12.5, lineHeight: 1.6, color: textSoft, margin: "0 0 12px" }}>
+              Тут — текстовий список районів з активною повітряною тривогою прямо зараз, без потреби гортати карту. Дані беруться з офіційного API alerts.in.ua і оновлюються автоматично щоразу, коли ви заходите на сторінку, або вручну кнопкою «Оновити». Якщо список порожній — за останніми даними тривог по Україні немає, але перевірте офіційні джерела, якщо плануєте щось, що залежить від безпеки.
+            </p>
 
             {airAlertsLoading && (
               <div style={{ fontSize: 13, color: textSoft }}>{AIR_ALERT_UI.loading}</div>
@@ -1432,6 +1435,11 @@ export default function LedgerForum() {
                 ? "Дані з офіційного API alerts.in.ua — для реальних рішень про безпеку користуйтеся сиренами. · blackout.org.ua"
                 : "Data from the official alerts.in.ua API — for real safety decisions use sirens. · blackout.org.ua"}
             </div>
+            <p style={{ fontSize: 13, lineHeight: 1.6, color: textSoft, margin: "0 0 12px" }}>
+              {lang === "ua"
+                ? "Карта показує 139 районів України: сірий колір — тривоги немає, кольорова заливка — триває повітряна тривога чи бойові дії за даними офіційного API alerts.in.ua. Наведіть курсор на район, щоб побачити назву, або перемкніться на вкладку «Тривога» для текстового списку активних попереджень. Дані оновлюються автоматично, але для рішень про власну безпеку орієнтуйтеся на сирени та застосунок «Повітряна тривога»."
+                : "The map shows all 139 districts of Ukraine: grey means no alert, a colored fill means an active air raid or combat alert per the official alerts.in.ua API. Hover a district to see its name, or switch to the Alert tab for a plain-text list of active warnings. Data updates automatically, but for real safety decisions rely on sirens and the official Air Alert app."}
+            </p>
             <style>{`
               .map-district { fill: ${mapNoAlert}; stroke: none; }
               .map-district.kind-air { fill: ${mapAirRaidDistrict}; }
