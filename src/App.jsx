@@ -1402,6 +1402,28 @@ export default function LedgerForum() {
               );
             })}
           </div>
+
+          <div style={{ background: orangeSoft, border: `1px solid ${orange}40`, borderRadius: 8, padding: "14px 14px", marginTop: 12 }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.06em", color: orange, marginBottom: 8, fontWeight: 700, textTransform: "uppercase" }}>
+              {lang === "ua" ? "Дешеві павербанки" : "Cheap power banks"}
+            </div>
+            <div style={{ fontSize: 13, color: text, lineHeight: 1.5, marginBottom: 12 }}>
+              {lang === "ua"
+                ? "На форумі часто питають, де взяти недорогий павербанк — на Temu ціни помітно нижчі."
+                : "People on the forum often ask where to get a cheap power bank — prices on Temu are noticeably lower."}
+            </div>
+            <a
+              href="https://temu.to/k/e6ethc7jzjk"
+              target="_blank"
+              rel="noopener sponsored"
+              style={{ display: "inline-block", background: orange, color: "#fff", borderRadius: 999, padding: "9px 18px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}
+            >
+              {lang === "ua" ? "Переглянути на Temu" : "Check Temu"}
+            </a>
+            <div style={{ fontSize: 10.5, color: textSoft, marginTop: 8 }}>
+              {lang === "ua" ? "Партнерське посилання" : "Affiliate link"}
+            </div>
+          </div>
         </div>
       </div>
 
