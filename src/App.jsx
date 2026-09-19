@@ -1370,10 +1370,10 @@ export default function LedgerForum() {
             <img
               src="/temu-icon.png"
               alt="Temu"
-              width={40}
-              height={40}
+              width={88}
+              height={88}
               loading="lazy"
-              style={{ display: "block", width: 40, height: 40, borderRadius: 9, marginBottom: 10 }}
+              style={{ display: "block", width: 88, height: 88, borderRadius: 18, marginBottom: 12 }}
             />
             <a
               href="https://temu.to/k/e6ethc7jzjk"
