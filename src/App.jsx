@@ -1623,9 +1623,17 @@ export default function LedgerForum() {
               {paragraph.text}
             </p>
           ))}
-          <a href="/privacy.html" style={{ fontSize: 12, color: orange, display: "inline-block", marginTop: 10 }}>
-            {lang === "ua" ? "Політика конфіденційності" : "Privacy Policy"}
-          </a>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 10 }}>
+            <a href="/pro-sajt.html" style={{ fontSize: 12, color: orange }}>
+              {lang === "ua" ? "Про сайт" : "About"}
+            </a>
+            <a href="/kontakty.html" style={{ fontSize: 12, color: orange }}>
+              {lang === "ua" ? "Контакти" : "Contacts"}
+            </a>
+            <a href="/privacy.html" style={{ fontSize: 12, color: orange }}>
+              {lang === "ua" ? "Політика конфіденційності" : "Privacy Policy"}
+            </a>
+          </div>
         </div>
       </div>
 
