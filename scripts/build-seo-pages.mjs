@@ -638,7 +638,7 @@ ${hasHub ? '<p><a href="/hrafik-vidkliuchen/">Графіки відключен�
     JSON.stringify({
       generatedAt: BUILT_AT.toISOString(),
       regions: generatedRegions.map(r => r.slug),
-      guides: guides.map(g => ({ path: g.path, title: g.title })),
+      guides: guides.map(g => ({ path: g.path, title: g.title, section: g.section ?? null })),
     }) + "\n",
     "utf8"
   );

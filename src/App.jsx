@@ -348,6 +348,8 @@ export default function LedgerForum() {
       .then(d => { if (d && Array.isArray(d.guides)) setSeoPages(d); })
       .catch(() => {});
   }, []);
+  // newest guide from the power banks section, if one exists (the id/slug is only known at build time)
+  const powerbankGuide = seoPages?.guides.find(g => g.section === "powerbanks") || null;
   const [scheduleEntries, setScheduleEntries] = useState([]);
   const [selectedEntryKey, setSelectedEntryKey] = useState(null);
   const [manualOverrides, setManualOverrides] = useState({}); // entryKey -> 24-slot bool array, only set once user edits by hand
@@ -1362,8 +1364,8 @@ export default function LedgerForum() {
             </div>
             <div style={{ fontSize: 13, color: text, lineHeight: 1.5, marginBottom: 12 }}>
               {lang === "ua"
-                ? "На форумі часто питають, де взяти недорогий павербанк — на Temu ціни помітно нижчі."
-                : "People on the forum often ask where to get a cheap power bank — prices on Temu are noticeably lower."}
+                ? "Павербанк на 20 000–30 000 mAh закриває телефон на добу-дві. На Temu такі моделі помітно дешевші, ніж у роздрібі."
+                : "A 20,000–30,000 mAh power bank covers a phone for a day or two. On Temu these models are noticeably cheaper than in retail."}
             </div>
             <a
               href="https://temu.to/k/e6ethc7jzjk"
@@ -1376,6 +1378,11 @@ export default function LedgerForum() {
             <div style={{ fontSize: 10.5, color: textSoft, marginTop: 8 }}>
               {lang === "ua" ? "Партнерське посилання" : "Affiliate link"}
             </div>
+            {powerbankGuide && (
+              <a href={powerbankGuide.path} style={{ display: "inline-block", fontSize: 12.5, color: textSoft, marginTop: 10, textDecoration: "underline" }}>
+                {lang === "ua" ? "Як обрати павербанк" : "How to choose a power bank"}
+              </a>
+            )}
           </div>
         </div>
       </div>
