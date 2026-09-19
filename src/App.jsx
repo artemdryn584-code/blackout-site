@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { ArrowBigUp, ArrowBigDown, MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock, ChevronDown, Sun, Moon } from "lucide-react";
+import { MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock, ChevronDown, Sun, Moon } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient";
 import { DISTRICTS_SVG } from "./data/districtBorders";
 import OBLAST_BORDER_PATHS from "./data/oblastBorderPaths.json";
+import { REGION_OPTIONS } from "./data/regions";
 
 const BACKEND_URL = "https://outage-schedule-backend.onrender.com";
 
@@ -14,7 +15,6 @@ const text = "#D7DADC";
 const textSoft = "#818384";
 const orange = "#FF4500";
 const orangeSoft = "rgba(255,69,0,0.16)";
-const upvoteBlue = "#9AB4FF";
 const danger = "#FF6B57";
 const dangerSoft = "rgba(255,107,87,0.16)";
 const gold = "#FFC93C";
@@ -89,29 +89,29 @@ const SECTION_DEFS = [
 
 const UI = {
   en: {
-    tagline: "a community for outage schedules, generators, and getting through the dark hours",
+    tagline: "guides on outage schedules, generators and getting through the dark hours",
     newPost: "New post",
     clearedTitle: "HOURS WITHOUT POWER REPORTED THIS WEEK",
-    clearedSub: (n) => `across ${n} reported ${n === 1 ? "case" : "cases"} — shared by the community`,
+    clearedSub: (n) => `across ${n} reported ${n === 1 ? "case" : "cases"} — reported by visitors`,
     addCleared: "Report your outage",
-    sections: "communities",
+    sections: "sections",
     allSections: "Home",
     top: "Top",
     new: "New",
-    noPosts: "No posts here yet. Start the conversation.",
+    noPosts: "Nothing here yet.",
     postsLoading: "Loading posts…",
-    postsError: "Couldn't reach the forum. Try again.",
+    postsError: "Couldn't load. Try again.",
     retry: "Retry",
     comments: "comments",
     noComments: "No comments yet. Be the first to reply.",
     addComment: "Add a comment",
     reply: "Reply",
     newPostModal: "New post",
-    section: "COMMUNITY",
+    section: "SECTION",
     title: "TITLE",
-    titlePlaceholder: "What's going on with your power?",
+    titlePlaceholder: "Guide title",
     details: "DETAILS (OPTIONAL)",
-    detailsPlaceholder: "Add context — what happened, what you've tried, what you need help with",
+    detailsPlaceholder: "Guide text",
     cancel: "Cancel",
     post: "Post",
     titleError: "Give the post a title first.",
@@ -131,29 +131,29 @@ const UI = {
     ],
   },
   ua: {
-    tagline: "спільнота про графіки відключень, генератори і те, як пережити темні години",
+    tagline: "гайди про графіки відключень, генератори та як пережити темні години",
     newPost: "Новий пост",
     clearedTitle: "ГОДИН БЕЗ СВІТЛА ПОВІДОМЛЕНО ЦЬОГО ТИЖНЯ",
-    clearedSub: (n) => `за ${n} ${n === 1 ? "заявленим випадком" : "заявленими випадками"} — поділилася спільнота`,
+    clearedSub: (n) => `за ${n} ${n === 1 ? "заявленим випадком" : "заявленими випадками"} — повідомили відвідувачі`,
     addCleared: "Повідомити про своє відключення",
-    sections: "спільноти",
+    sections: "розділи",
     allSections: "Головна",
     top: "Топ",
     new: "Нові",
-    noPosts: "Тут поки що немає постів. Почніть обговорення першим.",
+    noPosts: "Тут поки порожньо.",
     postsLoading: "Завантажуємо пости…",
-    postsError: "Не вдалося звʼязатися з форумом. Спробуйте ще раз.",
+    postsError: "Не вдалося завантажити. Спробуйте ще раз.",
     retry: "Спробувати ще раз",
     comments: "коментарів",
     noComments: "Коментарів поки немає. Будьте першим.",
     addComment: "Написати коментар",
     reply: "Відповісти",
     newPostModal: "Новий пост",
-    section: "СПІЛЬНОТА",
+    section: "РОЗДІЛ",
     title: "ЗАГОЛОВОК",
-    titlePlaceholder: "Що сталося зі світлом?",
+    titlePlaceholder: "Заголовок гайду",
     details: "ПОДРОБИЦІ (НЕОБОВʼЯЗКОВО)",
-    detailsPlaceholder: "Додайте контекст — що сталося, що вже пробували, яка потрібна допомога",
+    detailsPlaceholder: "Текст гайду",
     cancel: "Скасувати",
     post: "Опублікувати",
     titleError: "Спочатку додайте заголовок.",
@@ -181,36 +181,6 @@ const SECTION_NAMES = {
 
 const UNIT = { en: "hrs", ua: "год" };
 
-const REGION_OPTIONS = [
-  { slug: "kyiv", name: "Київ (місто)" },
-  { slug: "kyivska-oblast", name: "Київська область" },
-  { slug: "dnipropetrovska-oblast", name: "Дніпропетровська область" },
-  { slug: "lvivska-oblast", name: "Львівська область" },
-  { slug: "odeska-oblast", name: "Одеська область" },
-  { slug: "kharkivska-oblast", name: "Харківська область" },
-  { slug: "zaporizka-oblast", name: "Запорізька область" },
-  { slug: "vinnytska-oblast", name: "Вінницька область" },
-  { slug: "volynska-oblast", name: "Волинська область" },
-  { slug: "donetska-oblast", name: "Донецька область" },
-  { slug: "zhytomyrska-oblast", name: "Житомирська область" },
-  { slug: "zakarpatska-oblast", name: "Закарпатська область" },
-  { slug: "ivano-frankivska-oblast", name: "Івано-Франківська область" },
-  { slug: "kirovogradska-oblast", name: "Кіровоградська область" },
-  { slug: "luganska-oblast", name: "Луганська область" },
-  { slug: "mikolayivska-oblast", name: "Миколаївська область" },
-  { slug: "poltavska-oblast", name: "Полтавська область" },
-  { slug: "rivnenska-oblast", name: "Рівненська область" },
-  { slug: "sumska-oblast", name: "Сумська область" },
-  { slug: "ternopilska-oblast", name: "Тернопільська область" },
-  { slug: "khersonska-oblast", name: "Херсонська область" },
-  { slug: "khmelnytska-oblast", name: "Хмельницька область" },
-  { slug: "cherkaska-oblast", name: "Черкаська область" },
-  { slug: "chernivecka-oblast", name: "Чернівецька область" },
-  { slug: "chernigivska-oblast", name: "Чернігівська область" },
-  { slug: "avtonomna-respublika-krym", name: "АР Крим" },
-  { slug: "sevastopol", name: "Севастополь" },
-];
-
 const SCHEDULE_FAQ = [
   {
     q: "Чому графік на сайті відрізняється від реального відключення у мене вдома?",
@@ -222,7 +192,7 @@ const SCHEDULE_FAQ = [
   },
   {
     q: "Що робити, якщо світла немає довше, ніж вказано у графіку?",
-    a: "Це може бути аварійне відключення, не пов'язане з плановим графіком. Перевірте офіційний Telegram-канал свого обленерго — там зазвичай повідомляють про терміни усунення. Можете також написати про це на форумі нижче — іншим буде корисно знати.",
+    a: "Це може бути аварійне відключення, не пов'язане з плановим графіком. Перевірте офіційний Telegram-канал свого обленерго — там зазвичай повідомляють про терміни усунення.",
   },
   {
     q: "Наскільки точні дані про повітряну тривогу на карті?",
@@ -321,7 +291,6 @@ export default function LedgerForum() {
   const textSoft = isDark ? "#a2a8b3" : "#5c6472";
   const orange = isDark ? "#4c8dff" : "#0057b7"; // было Reddit-оранжевым, теперь синій прапора (имя оставили как есть, чтобы не трогать остальной файл)
   const orangeSoft = isDark ? "rgba(76,141,255,0.18)" : "rgba(0,87,183,0.10)";
-  const upvoteBlue = isDark ? "#c9b100" : "#a37f00"; // цвет даунвоута — теперь жовтий прапора, раз синій зайнятий основним акцентом
   const danger = isDark ? "#FF6B57" : "#D93025";
   const dangerSoft = isDark ? "rgba(255,107,87,0.16)" : "rgba(217,48,37,0.10)";
   const gold = isDark ? "#FFC93C" : "#B8860B";
@@ -357,13 +326,28 @@ export default function LedgerForum() {
     return () => listener.subscription.unsubscribe();
   }, []);
   const isAdmin = Boolean(session);
-  const [voteState, setVoteState] = useState({});
   const [commentDraft, setCommentDraft] = useState("");
   const [composeTitle, setComposeTitle] = useState("");
   const [composeBody, setComposeBody] = useState("");
   const [composeSection, setComposeSection] = useState("schedule");
   const [composeError, setComposeError] = useState("");
-  const [scheduleRegion, setScheduleRegion] = useState("kyiv");
+  const [scheduleRegion, setScheduleRegion] = useState(() => {
+    // static SEO pages link here as /?region=<slug>
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get("region");
+      if (fromUrl && REGION_OPTIONS.some(r => r.slug === fromUrl)) return fromUrl;
+    } catch (e) { /* no window / bad URL — fall through to the default */ }
+    return "kyiv";
+  });
+  // which build-time SEO pages actually exist (written by scripts/build-seo-pages.mjs);
+  // null in dev or if the file is missing, in which case the links block stays hidden
+  const [seoPages, setSeoPages] = useState(null);
+  useEffect(() => {
+    fetch("/seo-pages.json")
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && Array.isArray(d.guides)) setSeoPages(d); })
+      .catch(() => {});
+  }, []);
   const [scheduleEntries, setScheduleEntries] = useState([]);
   const [selectedEntryKey, setSelectedEntryKey] = useState(null);
   const [manualOverrides, setManualOverrides] = useState({}); // entryKey -> 24-slot bool array, only set once user edits by hand
@@ -661,29 +645,12 @@ export default function LedgerForum() {
     }
   }
 
-  function castVote(postId, dir) {
-    const current = voteState[postId] || 0;
-    const next = current === dir ? 0 : dir;
-    const delta = next - current;
-    if (delta === 0) return;
-    setVoteState(prev => ({ ...prev, [postId]: next }));
-    setPosts(ps => ps.map(p => p.id === postId ? { ...p, votes: p.votes + delta } : p));
-    if (!supabaseConfigured) return;
-    supabase.rpc("increment_post_vote", { p_id: postId, delta }).then(({ error }) => {
-      if (error) {
-        // roll back the optimistic update if the write didn't actually land
-        setVoteState(prev => ({ ...prev, [postId]: current }));
-        setPosts(ps => ps.map(p => p.id === postId ? { ...p, votes: p.votes - delta } : p));
-      }
-    });
-  }
-
   async function submitComment(postId) {
     const text = commentDraft.trim();
     if (!text || !supabaseConfigured) return;
     const { data, error } = await supabase
       .from("comments")
-      .insert({ post_id: postId, author: "u/you", text })
+      .insert({ post_id: postId, author: lang === "ua" ? "Гість" : "Guest", text })
       .select()
       .single();
     if (error) return;
@@ -928,7 +895,7 @@ export default function LedgerForum() {
           {[
             { id: "schedule", label: lang === "ua" ? "Графік" : "Schedule", icon: Clock },
             { id: "map", label: lang === "ua" ? "Карта" : "Map", icon: MapIcon },
-            { id: "forum", label: lang === "ua" ? "Форум" : "Forum", icon: LayoutGrid },
+            { id: "forum", label: lang === "ua" ? "Гайди" : "Guides", icon: LayoutGrid },
             { id: "alert", label: lang === "ua" ? "Тривога" : "Alert", icon: Siren },
           ].map(tab => {
             const Icon = tab.icon;
@@ -1279,28 +1246,14 @@ export default function LedgerForum() {
           {!postsLoading && !postsError && filtered.map(post => {
             const Icon = SECTION_DEFS.find(s => s.id === post.section).icon;
             const isOpen = openPost === post.id;
-            const myVote = voteState[post.id] || 0;
             return (
-              <div key={post.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, marginBottom: 10, display: "flex" }}>
-                {/* vote column */}
-                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "12px 8px", minWidth: 40, background: inputBg, borderRadius: "8px 0 0 8px" }}>
-                  <button onClick={() => castVote(post.id, 1)} aria-label="Upvote" style={{ background: "none", border: "none", cursor: "pointer", color: myVote === 1 ? orange : textSoft, padding: 2, lineHeight: 0 }}>
-                    <ArrowBigUp size={20} fill={myVote === 1 ? orange : "none"} />
-                  </button>
-                  <span style={{ fontWeight: 700, fontSize: 12.5, margin: "4px 0", color: myVote === 1 ? orange : myVote === -1 ? upvoteBlue : text }}>{post.votes}</span>
-                  <button onClick={() => castVote(post.id, -1)} aria-label="Downvote" style={{ background: "none", border: "none", cursor: "pointer", color: myVote === -1 ? upvoteBlue : textSoft, padding: 2, lineHeight: 0 }}>
-                    <ArrowBigDown size={20} fill={myVote === -1 ? upvoteBlue : "none"} />
-                  </button>
-                </div>
-
+              <div key={post.id} style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, marginBottom: 10 }}>
                 {/* content */}
                 <div style={{ padding: "12px 16px", flex: 1, minWidth: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: textSoft, marginBottom: 6 }}>
                     <span style={{ display: "flex", alignItems: "center", gap: 4, fontWeight: 700, color: text }}>
-                      <Icon size={13} /> r/{sectionName(post.section)}
+                      <Icon size={13} /> {sectionName(post.section)}
                     </span>
-                    <span>·</span>
-                    <span>{post.author}</span>
                     <span>·</span>
                     <span>{timeAgo(post.created_at, lang)}</span>
                   </div>
@@ -1396,7 +1349,7 @@ export default function LedgerForum() {
                   }}
                 >
                   <Icon size={16} />
-                  <span style={{ flex: 1 }}>r/{sectionName(s.id)}</span>
+                  <span style={{ flex: 1 }}>{sectionName(s.id)}</span>
                   <span style={{ fontSize: 12, color: textSoft }}>{count}</span>
                 </button>
               );
@@ -1576,7 +1529,7 @@ export default function LedgerForum() {
               onChange={e => setComposeSection(e.target.value)}
               style={{ width: "100%", padding: "9px 10px", border: `1px solid ${border}`, borderRadius: 8, marginBottom: 16, fontSize: 14, fontFamily: "inherit", background: inputBg, color: text }}
             >
-              {SECTION_DEFS.map(s => <option key={s.id} value={s.id}>r/{sectionName(s.id)}</option>)}
+              {SECTION_DEFS.map(s => <option key={s.id} value={s.id}>{sectionName(s.id)}</option>)}
             </select>
 
             <div style={{ fontSize: 12, color: textSoft, marginBottom: 6, fontWeight: 700 }}>{t.title}</div>
@@ -1613,6 +1566,26 @@ export default function LedgerForum() {
             </div>
           </div>
         </div>
+      )}
+
+      {seoPages && seoPages.guides.length > 0 && (
+        <nav aria-label={lang === "ua" ? "Гайди" : "Guides"} style={{ maxWidth: 1000, margin: "20px auto 0", padding: "0 20px" }}>
+          <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "14px 16px" }}>
+            <div style={{ fontSize: 11, letterSpacing: "0.06em", color: textSoft, marginBottom: 8, fontWeight: 700, textTransform: "uppercase" }}>
+              {lang === "ua" ? "Гайди" : "Guides"}
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginBottom: 12 }}>
+              {seoPages.guides.slice(0, 12).map(g => (
+                <a key={g.path} href={g.path} style={{ fontSize: 13, color: orange, textDecoration: "none" }}>
+                  {g.title}
+                </a>
+              ))}
+            </div>
+            <a href="/haydy/" style={{ fontSize: 13, fontWeight: 700, color: orange, textDecoration: "none" }}>
+              {lang === "ua" ? "Усі гайди →" : "All guides →"}
+            </a>
+          </div>
+        </nav>
       )}
 
       <div style={{ maxWidth: 1000, margin: "20px auto 0", padding: "0 20px 30px" }}>

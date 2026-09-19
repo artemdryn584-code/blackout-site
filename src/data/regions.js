@@ -1,0 +1,32 @@
+// Single source of truth for the outage-schedule regions. Imported by the app
+// (src/App.jsx) and by the build-time SEO page generator
+// (scripts/build-seo-pages.mjs) so the two can never drift apart.
+export const REGION_OPTIONS = [
+  { slug: "kyiv", name: "Київ (місто)" },
+  { slug: "kyivska-oblast", name: "Київська область" },
+  { slug: "dnipropetrovska-oblast", name: "Дніпропетровська область" },
+  { slug: "lvivska-oblast", name: "Львівська область" },
+  { slug: "odeska-oblast", name: "Одеська область" },
+  { slug: "kharkivska-oblast", name: "Харківська область" },
+  { slug: "zaporizka-oblast", name: "Запорізька область" },
+  { slug: "vinnytska-oblast", name: "Вінницька область" },
+  { slug: "volynska-oblast", name: "Волинська область" },
+  { slug: "donetska-oblast", name: "Донецька область" },
+  { slug: "zhytomyrska-oblast", name: "Житомирська область" },
+  { slug: "zakarpatska-oblast", name: "Закарпатська область" },
+  { slug: "ivano-frankivska-oblast", name: "Івано-Франківська область" },
+  { slug: "kirovogradska-oblast", name: "Кіровоградська область" },
+  { slug: "luganska-oblast", name: "Луганська область" },
+  { slug: "mikolayivska-oblast", name: "Миколаївська область" },
+  { slug: "poltavska-oblast", name: "Полтавська область" },
+  { slug: "rivnenska-oblast", name: "Рівненська область" },
+  { slug: "sumska-oblast", name: "Сумська область" },
+  { slug: "ternopilska-oblast", name: "Тернопільська область" },
+  { slug: "khersonska-oblast", name: "Херсонська область" },
+  { slug: "khmelnytska-oblast", name: "Хмельницька область" },
+  { slug: "cherkaska-oblast", name: "Черкаська область" },
+  { slug: "chernivecka-oblast", name: "Чернівецька область" },
+  { slug: "chernigivska-oblast", name: "Чернігівська область" },
+  { slug: "avtonomna-respublika-krym", name: "АР Крим" },
+  { slug: "sevastopol", name: "Севастополь" },
+];

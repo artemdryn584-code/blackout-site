@@ -1,7 +1,7 @@
 {
   "name": "blackout",
   "short_name": "blackout",
-  "description": "Спільнота про графіки відключень світла та повітряні тривоги",
+  "description": "Карта повітряних тривог, графіки відключень світла та гайди про те, як пережити відключення",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#142238",
