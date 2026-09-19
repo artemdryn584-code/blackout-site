@@ -1367,6 +1367,14 @@ export default function LedgerForum() {
                 ? "Павербанк на 20 000–30 000 mAh закриває телефон на добу-дві. На Temu такі моделі помітно дешевші, ніж у роздрібі."
                 : "A 20,000–30,000 mAh power bank covers a phone for a day or two. On Temu these models are noticeably cheaper than in retail."}
             </div>
+            <img
+              src="/temu-icon.png"
+              alt="Temu"
+              width={40}
+              height={40}
+              loading="lazy"
+              style={{ display: "block", width: 40, height: 40, borderRadius: 9, marginBottom: 10 }}
+            />
             <a
               href="https://temu.to/k/e6ethc7jzjk"
               target="_blank"
