@@ -101,10 +101,34 @@
         min-height: 100%;
         overflow-x: hidden;
       }
+      /* static site footer: lives OUTSIDE #root so React never touches it */
+      .site-footer {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 24px 20px 32px;
+        border-top: 1px solid #1b2028;
+        color: #7f8a9b;
+        font: 12.5px/1.6 system-ui, -apple-system, sans-serif;
+      }
+      .site-footer p { margin: 0 0 8px; }
+      .site-footer nav { margin: 0 0 8px; }
+      .site-footer a { color: #8fa3bf; margin-right: 16px; }
     </style>
   </head>
   <body>
     <div id="root"></div>
+    <footer class="site-footer">
+      <p>Blackout — онлайн-карта повітряних тривог по областях і районах України та графіки погодинних відключень світла. Дані беруться з відкритих джерел і оновлюються автоматично.</p>
+      <p>Сайт незалежний і не пов'язаний з обленерго чи державними органами. Для рішень, пов'язаних із безпекою, орієнтуйтеся на офіційні сирени та застосунок «Повітряна тривога».</p>
+      <nav aria-label="Про проєкт">
+        <a href="/haydy/">Гайди</a>
+        <a href="/pro-sajt.html">Про сайт</a>
+        <a href="/kontakty.html">Контакти</a>
+        <a href="/privacy.html">Політика конфіденційності</a>
+      </nav>
+      <p>© <span id="site-year">2026</span> Blackout · blackout.org.ua</p>
+    </footer>
+    <script>document.getElementById("site-year").textContent = new Date().getFullYear();</script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

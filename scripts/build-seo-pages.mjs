@@ -55,6 +55,9 @@ const REGION_PAGES = process.env.SEO_REGION_PAGES === "1";
 // is applied. When every queue everywhere is "no outages", pages differ only by region name.
 const REQUIRE_OUTAGES = process.env.SEO_REQUIRE_OUTAGES === "1";
 
+// Static pages that live in public/ (copied into dist/ by Vite) and belong in the sitemap.
+const STATIC_PAGES = ["pro-sajt.html", "kontakty.html"];
+
 const BUILT_AT = new Date();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -297,7 +300,7 @@ ${main}
 </main>
 <footer>
   <p>Blackout — незалежний проєкт для зручного відстеження ситуації зі світлом в Україні. Ми не пов'язані з обленерго чи державними органами, а вся інформація береться з відкритих джерел, тому ми не можемо гарантувати її точність.</p>
-  <p><a href="/">Blackout.org.ua</a> · <a href="/privacy.html">Політика конфіденційності</a></p>
+  <p><a href="/">Blackout.org.ua</a> · <a href="/pro-sajt.html">Про сайт</a> · <a href="/kontakty.html">Контакти</a> · <a href="/privacy.html">Політика конфіденційності</a></p>
 </footer>
 </body>
 </html>
@@ -450,8 +453,7 @@ function sitemapXml(entries) {
     .map(
       e => `  <url>
     <loc>${esc(e.loc)}</loc>
-    <lastmod>${e.lastmod}</lastmod>
-    <changefreq>${e.changefreq}</changefreq>
+${e.lastmod ? `    <lastmod>${e.lastmod}</lastmod>\n` : ""}    <changefreq>${e.changefreq}</changefreq>
     <priority>${e.priority}</priority>
   </url>`
     )
@@ -629,6 +631,15 @@ ${hasHub ? '<p><a href="/hrafik-vidkliuchen/">Графіки відключен�
     });
     await writePage("haydy", listHtml);
     sitemap.push({ loc: `${SITE}/haydy/`, lastmod: BUILT_AT.toISOString(), changefreq: "weekly", priority: "0.6" });
+  }
+
+  // ---- hand-written static pages from public/ (no lastmod: they don't change per build) ----
+  for (const path of STATIC_PAGES) {
+    if (!existsSync(join(DIST, path))) {
+      console.warn(`⚠ ${path} немає в dist/ — у sitemap не додано.`);
+      continue;
+    }
+    sitemap.push({ loc: `${SITE}/${path}`, changefreq: "yearly", priority: "0.4" });
   }
 
   // ---- sitemap + manifest for the app ----
