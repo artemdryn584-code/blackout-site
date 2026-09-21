@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from "react";
-import { MessageSquare, Plus, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, Lock, Unlock, ChevronDown, Sun, Moon } from "lucide-react";
+import { MessageSquare, X, Clock, Fuel, BatteryCharging, AlertTriangle, Lightbulb, MapPin, Home, Globe, Siren, ExternalLink, RefreshCw, Wifi, WifiOff, LayoutGrid, Map as MapIcon, Zap, ZapOff, ChevronDown, Sun, Moon } from "lucide-react";
 import { supabase, supabaseConfigured } from "./lib/supabaseClient";
 import { DISTRICTS_SVG } from "./data/districtBorders";
 import OBLAST_BORDER_PATHS from "./data/oblastBorderPaths.json";
@@ -90,7 +90,6 @@ const SECTION_DEFS = [
 const UI = {
   en: {
     tagline: "guides on outage schedules, generators and getting through the dark hours",
-    newPost: "New post",
     clearedTitle: "HOURS WITHOUT POWER REPORTED THIS WEEK",
     clearedSub: (n) => `across ${n} reported ${n === 1 ? "case" : "cases"} — reported by visitors`,
     addCleared: "Report your outage",
@@ -106,15 +105,6 @@ const UI = {
     noComments: "No comments yet. Be the first to reply.",
     addComment: "Add a comment",
     reply: "Reply",
-    newPostModal: "New post",
-    section: "SECTION",
-    title: "TITLE",
-    titlePlaceholder: "Guide title",
-    details: "DETAILS (OPTIONAL)",
-    detailsPlaceholder: "Guide text",
-    cancel: "Cancel",
-    post: "Post",
-    titleError: "Give the post a title first.",
     addClearedModal: "Report your outage",
     amount: "HOURS WITHOUT POWER",
     amountPlaceholder: "6",
@@ -132,7 +122,6 @@ const UI = {
   },
   ua: {
     tagline: "гайди про графіки відключень, генератори та як пережити темні години",
-    newPost: "Новий пост",
     clearedTitle: "ГОДИН БЕЗ СВІТЛА ПОВІДОМЛЕНО ЦЬОГО ТИЖНЯ",
     clearedSub: (n) => `за ${n} ${n === 1 ? "заявленим випадком" : "заявленими випадками"} — повідомили відвідувачі`,
     addCleared: "Повідомити про своє відключення",
@@ -148,15 +137,6 @@ const UI = {
     noComments: "Коментарів поки немає. Будьте першим.",
     addComment: "Написати коментар",
     reply: "Відповісти",
-    newPostModal: "Новий пост",
-    section: "РОЗДІЛ",
-    title: "ЗАГОЛОВОК",
-    titlePlaceholder: "Заголовок гайду",
-    details: "ПОДРОБИЦІ (НЕОБОВʼЯЗКОВО)",
-    detailsPlaceholder: "Текст гайду",
-    cancel: "Скасувати",
-    post: "Опублікувати",
-    titleError: "Спочатку додайте заголовок.",
     addClearedModal: "Повідомити про своє відключення",
     amount: "ГОДИН БЕЗ СВІТЛА",
     amountPlaceholder: "6",
@@ -361,28 +341,7 @@ export default function LedgerForum() {
   const [sort, setSort] = useState("top");
   const [openPost, setOpenPost] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
-  const [showCompose, setShowCompose] = useState(false);
-  const [session, setSession] = useState(null);
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-    });
-    return () => listener.subscription.unsubscribe();
-  }, []);
-  const isAdmin = Boolean(session);
-  // The padlock is clutter for visitors, but removing it would lock the owner out of the
-  // compose flow — so it appears on /?admin=1, and stays while a session is active.
-  const [adminEntryVisible] = useState(() => {
-    try { return new URLSearchParams(window.location.search).get("admin") === "1"; } catch (e) { return false; }
-  });
-  const showAdminButton = adminEntryVisible || isAdmin;
   const [commentDraft, setCommentDraft] = useState("");
-  const [composeTitle, setComposeTitle] = useState("");
-  const [composeBody, setComposeBody] = useState("");
-  const [composeSection, setComposeSection] = useState("schedule");
-  const [composeError, setComposeError] = useState("");
   const [scheduleRegion, setScheduleRegion] = useState(() => {
     // static SEO pages link here as /?region=<slug>
     try {
@@ -687,7 +646,6 @@ export default function LedgerForum() {
     setLang(next);
     setOpenPost(null);
     setActiveSection("all");
-    setComposeSection("schedule");
   }
 
   const filtered = useMemo(() => {
@@ -696,24 +654,6 @@ export default function LedgerForum() {
     return list;
   }, [posts, activeSection, sort]);
 
-  async function handleAdminClick() {
-    if (!supabase) return;
-    if (isAdmin) {
-      const confirmMsg = lang === "ua" ? "Вийти з режиму адміна?" : "Log out of admin mode?";
-      if (window.confirm(confirmMsg)) {
-        await supabase.auth.signOut();
-      }
-      return;
-    }
-    const email = window.prompt(lang === "ua" ? "Email:" : "Email:");
-    if (!email) return;
-    const password = window.prompt(lang === "ua" ? "Пароль:" : "Password:");
-    if (!password) return;
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      window.alert(lang === "ua" ? "Не вдалося увійти: перевір email і пароль" : "Sign-in failed: check email and password");
-    }
-  }
 
   async function submitComment(postId) {
     const text = commentDraft.trim();
@@ -730,36 +670,6 @@ export default function LedgerForum() {
     setCommentDraft("");
   }
 
-  async function submitPost() {
-    if (!composeTitle.trim()) {
-      setComposeError(t.titleError);
-      return;
-    }
-    if (!supabaseConfigured) {
-      setComposeError(t.postsError);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("posts")
-      .insert({
-        section: composeSection,
-        author: "u/you",
-        title: composeTitle.trim(),
-        body: composeBody.trim(),
-      })
-      .select()
-      .single();
-    if (error) {
-      setComposeError(t.postsError);
-      return;
-    }
-    setPosts(ps => [{ ...data, comments: [] }, ...ps]);
-    setComposeTitle("");
-    setComposeBody("");
-    setComposeError("");
-    setShowCompose(false);
-    setActiveSection(composeSection);
-  }
 
   function toggleHour(hour) {
     if (!selectedEntryKey) return;
@@ -916,32 +826,6 @@ export default function LedgerForum() {
                 </button>
               ))}
             </div>
-            {showAdminButton && (
-            <button
-              onClick={handleAdminClick}
-              title={isAdmin
-                ? (lang === "ua" ? "Режим адміна (вийти)" : "Admin mode (log out)")
-                : (lang === "ua" ? "Вхід для адміна" : "Admin login")}
-              style={{
-                display: "flex", alignItems: "center", justifyContent: "center",
-                width: isNarrow ? 44 : 32, height: isNarrow ? 44 : 32, borderRadius: 999,
-                border: `1px solid ${border}`,
-                background: isAdmin ? orange : "transparent",
-                color: isAdmin ? "#fff" : textSoft,
-                cursor: "pointer",
-              }}
-            >
-              {isAdmin ? <Unlock size={14} /> : <Lock size={14} />}
-            </button>
-            )}
-            {isAdmin && (
-              <button
-                onClick={() => setShowCompose(true)}
-                style={{ display: "flex", alignItems: "center", gap: 6, background: orange, color: "#fff", border: "none", borderRadius: 999, padding: "8px 16px", fontWeight: 700, fontSize: 14, cursor: "pointer" }}
-              >
-                <Plus size={16} /> {t.newPost}
-              </button>
-            )}
           </div>
         </div>
         <div style={{ maxWidth: 1000, margin: "0 auto", padding: isNarrow ? "0 12px 10px" : "0 20px 10px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
@@ -1659,61 +1543,6 @@ export default function LedgerForum() {
         </div>
       )}
 
-      {/* compose modal */}
-      {showCompose && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.75)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50, padding: 20 }}>
-          <div style={{ background: card, borderRadius: 12, width: "100%", maxWidth: 520, padding: 24, border: `1px solid ${border}` }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-              <span style={{ fontWeight: 700, fontSize: 19 }}>{t.newPostModal}</span>
-              <button onClick={() => { setShowCompose(false); setComposeError(""); }} style={{ background: "none", border: "none", cursor: "pointer", color: textSoft }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ fontSize: 12, color: textSoft, marginBottom: 6, fontWeight: 700 }}>{t.section}</div>
-            <select
-              value={composeSection}
-              onChange={e => setComposeSection(e.target.value)}
-              style={{ width: "100%", padding: "9px 10px", border: `1px solid ${border}`, borderRadius: 8, marginBottom: 16, fontSize: 14, fontFamily: "inherit", background: inputBg, color: text }}
-            >
-              {SECTION_DEFS.map(s => <option key={s.id} value={s.id}>{sectionName(s.id)}</option>)}
-            </select>
-
-            <div style={{ fontSize: 12, color: textSoft, marginBottom: 6, fontWeight: 700 }}>{t.title}</div>
-            <input
-              value={composeTitle}
-              onChange={e => { setComposeTitle(e.target.value); if (composeError) setComposeError(""); }}
-              placeholder={t.titlePlaceholder}
-              style={{ width: "100%", padding: "9px 10px", border: `1px solid ${composeError ? danger : border}`, borderRadius: 8, marginBottom: composeError ? 6 : 16, fontSize: 14, fontFamily: "inherit", background: inputBg, color: text }}
-            />
-            {composeError && <div style={{ color: danger, fontSize: 12.5, marginBottom: 16 }}>{composeError}</div>}
-
-            <div style={{ fontSize: 12, color: textSoft, marginBottom: 6, fontWeight: 700 }}>{t.details}</div>
-            <textarea
-              value={composeBody}
-              onChange={e => setComposeBody(e.target.value)}
-              placeholder={t.detailsPlaceholder}
-              rows={4}
-              style={{ width: "100%", padding: "9px 10px", border: `1px solid ${border}`, borderRadius: 8, marginBottom: 18, fontSize: 14, fontFamily: "inherit", resize: "vertical", background: inputBg, color: text }}
-            />
-
-            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button
-                onClick={() => { setShowCompose(false); setComposeError(""); }}
-                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 999, padding: "9px 16px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
-              >
-                {t.cancel}
-              </button>
-              <button
-                onClick={submitPost}
-                style={{ background: orange, color: "#fff", border: "none", borderRadius: 999, padding: "9px 18px", fontSize: 14, fontWeight: 700, cursor: "pointer" }}
-              >
-                {t.post}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {seoPages && seoPages.guides.length > 0 && (
         <nav aria-label={lang === "ua" ? "Гайди" : "Guides"} style={{ maxWidth: 1000, margin: "20px auto 0", padding: "0 20px" }}>
