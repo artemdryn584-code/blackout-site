@@ -187,6 +187,10 @@ const TAB_IDS = ["schedule", "map", "forum", "alert"];
 // Phone-sized layout switch. The file has no CSS classes to hang a media query on, so the
 // breakpoint lives in JS and the styles branch on it. Reads false during SSR/first paint
 // only if matchMedia is missing, which never happens in a browser.
+// Expanded map width. The drawing is 4852x3252, so 149vh of width makes it exactly one
+// screen tall; anything wider than the viewport simply pans.
+const MAP_ZOOM_WIDTH = "max(100vw, 149vh)";
+
 const NARROW_QUERY = "(max-width: 900px)";
 function useIsNarrow() {
   const [narrow, setNarrow] = useState(() => {
@@ -341,6 +345,8 @@ export default function LedgerForum() {
     return "schedule";
   });
   const mapContainerRef = useRef(null);
+  const [mapExpanded, setMapExpanded] = useState(false);
+  const mapZoomRef = useRef(null);
   const scheduleScrollRef = useRef(null);
   const dragState = useRef({ active: false, startX: 0, startScroll: 0 });
 
@@ -649,6 +655,22 @@ export default function LedgerForum() {
       label.style.fill = isAlerted ? mapLabelActiveColor : (OBLAST_LABEL_COLOR[oblast] || mapLabelText);
     });
   }, [activeTab, airAlerts]);
+
+  // Full-screen map: Escape closes it, and the page behind stops scrolling while it's open.
+  useEffect(() => {
+    if (!mapExpanded) return;
+    const onKey = e => { if (e.key === "Escape") setMapExpanded(false); };
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    // open on the middle of the country, not on its western edge
+    const el = mapZoomRef.current;
+    if (el) el.scrollLeft = Math.max(0, (el.scrollWidth - el.clientWidth) / 2);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [mapExpanded]);
 
   function switchLang(next) {
     if (next === lang) return;
@@ -1526,10 +1548,49 @@ export default function LedgerForum() {
               .map-capital-pin.active-alert { fill: ${mapAirRaidDistrict}; }
               .map-city-dot { fill: ${mapLabelText}; stroke: ${mapBg}; stroke-width: 4; pointer-events: none; }
             `}</style>
-            <div style={{ position: "relative", background: mapBg, borderRadius: 8, overflow: "hidden", border: `1px solid ${border}` }}>
+            <div
+              ref={mapZoomRef}
+              onClick={() => { if (!mapExpanded) setMapExpanded(true); }}
+              role={mapExpanded ? undefined : "button"}
+              tabIndex={mapExpanded ? undefined : 0}
+              aria-label={mapExpanded ? undefined : (lang === "ua" ? "Збільшити карту" : "Enlarge the map")}
+              onKeyDown={e => {
+                if (mapExpanded) return;
+                if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setMapExpanded(true); }
+              }}
+              style={mapExpanded
+                // MAP_ZOOM_WIDTH below makes the map taller than the screen is wide, so it
+                // fills the height and pans sideways — on a phone a full-width map is no
+                // bigger than the card it came from.
+                ? { position: "fixed", inset: 0, zIndex: 60, background: mapBg, overflow: "auto", WebkitOverflowScrolling: "touch" }
+                : { position: "relative", background: mapBg, borderRadius: 8, overflow: "hidden", border: `1px solid ${border}`, cursor: "zoom-in" }}
+            >
+              {mapExpanded && (
+                <button
+                  onClick={e => { e.stopPropagation(); setMapExpanded(false); }}
+                  aria-label={lang === "ua" ? "Закрити" : "Close"}
+                  style={{
+                    position: "fixed", top: 12, right: 12, zIndex: 61,
+                    width: 44, height: 44, borderRadius: 999,
+                    border: `1px solid ${border}`, background: card, color: text,
+                    display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
+                  }}
+                >
+                  <X size={18} />
+                </button>
+              )}
+              {!mapExpanded && (
+                <span style={{
+                  position: "absolute", top: 10, right: 10, zIndex: 2,
+                  padding: "5px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 600,
+                  background: "rgba(2,3,7,0.65)", color: "rgba(238,242,248,0.85)", pointerEvents: "none",
+                }}>
+                  {lang === "ua" ? "Натисніть, щоб збільшити" : "Tap to enlarge"}
+                </span>
+              )}
               <div
                 ref={mapContainerRef}
-                style={{ width: "100%" }}
+                style={{ width: mapExpanded ? MAP_ZOOM_WIDTH : "100%" }}
                 dangerouslySetInnerHTML={{
                   // viewBox is the *actual* bounding box of every district path (checked
                   // via getBBox across all 139 of them: x 97–4889, y 162–3354), plus a
@@ -1546,7 +1607,7 @@ export default function LedgerForum() {
                   read clearly even when neighbouring raions share the same alert fill */}
               <svg
                 viewBox="67 132 4852 3252"
-                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
+                style={{ position: "absolute", top: 0, left: 0, width: mapExpanded ? MAP_ZOOM_WIDTH : "100%", height: "auto", pointerEvents: "none" }}
               >
                 {Object.entries(OBLAST_BORDER_PATHS).map(([oblast, d]) => (
                   <path key={oblast} d={d} fill="none" stroke={mapOblastBorder} strokeWidth={1.5} strokeLinejoin="round" />
