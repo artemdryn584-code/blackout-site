@@ -372,6 +372,12 @@ export default function LedgerForum() {
     return () => listener.subscription.unsubscribe();
   }, []);
   const isAdmin = Boolean(session);
+  // The padlock is clutter for visitors, but removing it would lock the owner out of the
+  // compose flow — so it appears on /?admin=1, and stays while a session is active.
+  const [adminEntryVisible] = useState(() => {
+    try { return new URLSearchParams(window.location.search).get("admin") === "1"; } catch (e) { return false; }
+  });
+  const showAdminButton = adminEntryVisible || isAdmin;
   const [commentDraft, setCommentDraft] = useState("");
   const [composeTitle, setComposeTitle] = useState("");
   const [composeBody, setComposeBody] = useState("");
@@ -910,6 +916,7 @@ export default function LedgerForum() {
                 </button>
               ))}
             </div>
+            {showAdminButton && (
             <button
               onClick={handleAdminClick}
               title={isAdmin
@@ -926,6 +933,7 @@ export default function LedgerForum() {
             >
               {isAdmin ? <Unlock size={14} /> : <Lock size={14} />}
             </button>
+            )}
             {isAdmin && (
               <button
                 onClick={() => setShowCompose(true)}
@@ -1510,14 +1518,6 @@ export default function LedgerForum() {
                   </span>
                 )}
               </div>
-              <button
-                onClick={fetchAirAlerts}
-                disabled={airAlertsLoading}
-                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 6, padding: isNarrow ? "0 14px" : "6px 10px", minHeight: isNarrow ? 44 : "auto", cursor: airAlertsLoading ? "default" : "pointer", color: textSoft, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontFamily: "inherit" }}
-              >
-                <RefreshCw size={13} style={airAlertsLoading ? { animation: "spin 1s linear infinite" } : {}} />
-                {lang === "ua" ? "Оновити" : "Refresh"}
-              </button>
             </div>
             <div style={{ background: dangerSoft, border: `1px solid ${danger}30`, borderRadius: 6, padding: "8px 12px", marginBottom: 12, fontSize: 12, lineHeight: 1.5 }}>
               {lang === "ua"
@@ -1646,6 +1646,14 @@ export default function LedgerForum() {
                 <span style={{ width: 12, height: 12, borderRadius: 3, background: mapAirRaidDistrict, opacity: 0.6, display: "inline-block" }} />
                 {lang === "ua" ? "тривога десь в області" : "alert somewhere in the oblast"}
               </span>
+              <button
+                onClick={fetchAirAlerts}
+                disabled={airAlertsLoading}
+                style={{ marginLeft: "auto", background: "none", border: `1px solid ${border}`, borderRadius: 999, padding: isNarrow ? "0 16px" : "6px 12px", minHeight: isNarrow ? 44 : "auto", cursor: airAlertsLoading ? "default" : "pointer", color: textSoft, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontFamily: "inherit" }}
+              >
+                <RefreshCw size={13} style={airAlertsLoading ? { animation: "spin 1s linear infinite" } : {}} />
+                {lang === "ua" ? "Оновити" : "Refresh"}
+              </button>
             </div>
           </div>
         </div>
