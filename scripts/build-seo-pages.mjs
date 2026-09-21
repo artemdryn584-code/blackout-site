@@ -4,27 +4,30 @@
 // search engines get no real text and no per-topic addresses. This script writes plain
 // HTML pages with real content at real URLs:
 //
-//   dist/hrafik-vidkliuchen/index.html          hub: links to every region page that exists
+//   dist/karta-povitryanyh-tryvog/index.html  the air-raid map section (always)
+//   dist/hrafik-vidkliuchen/index.html          the outage-schedule section (always)
 //   dist/hrafik-vidkliuchen/<slug>/index.html   outage schedule per region (live API data)
 //   dist/haydy/index.html                       list of guides
 //   dist/hayd/<id>-<slug>/index.html            one page per guide (row in Supabase `posts`)
 //   dist/sitemap.xml                            rebuilt from what was actually generated
 //   dist/seo-pages.json                         what exists (the app reads it to render links)
+// It also fills the guides column in the hand-written footer of dist/index.html.
 //
 // REGION PAGES ARE OFF BY DEFAULT (set SEO_REGION_PAGES=1 to enable). Reason: they are a
 // build-time snapshot of the live schedule, so they go stale until the next deploy, and when
 // no region has outages every page is identical except for the region name (a doorway page).
 // The code is kept for when the region pages are reworked around stable content (which
 // oblenergo serves the region, where to look up the address list per queue, official
-// contacts). With the flag off there are NO requests to the schedule API and NO links to
-// /hrafik-vidkliuchen/ anywhere (nav, guides, sitemap, seo-pages.json).
+// contacts). With the flag off there are NO requests to the schedule API and no per-region
+// pages; /hrafik-vidkliuchen/ itself is a permanent section page either way, and it lists the
+// regions as one more section when they exist.
 //
 // When enabled: a region page is written only if the API returned real schedule data for it.
 // A guide page is written only for a row that really exists in Supabase.
 //
 // This script never fails the deploy over missing data: a broken backend or missing
 // Supabase env just means fewer pages (loudly logged). Only a missing dist/ is fatal.
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -446,6 +449,118 @@ ${regionLinks.map(r => `<li><a href="/hrafik-vidkliuchen/${r.slug}/">Графі�
 <p><a href="/haydy/">← Усі гайди</a></p>`;
 }
 
+// ---------- home page footer ----------
+
+// index.html ships a static footer whose guides column is a placeholder, because at the time
+// it is written nobody knows which guide pages exist. Fill it in with the newest guides:
+// Search Console reports the guide pages as having no referring page, and these links fix that.
+async function fillFooterGuides(guides) {
+  const file = join(DIST, "index.html");
+  const placeholder = new RegExp(String.raw`<ul id="footer-guides">[^]*?</ul>`);
+  const html = await readFile(file, "utf8");
+  if (!placeholder.test(html)) {
+    console.warn('⚠ dist/index.html: <ul id="footer-guides"> не знайдено — колонку гайдів у підвалі не заповнено.');
+    return;
+  }
+  const shown = guides.slice(0, 6);
+  const items = shown.map(g => {
+    const short = truncate(g.title, 40);
+    const hint = short === g.title ? "" : ` title="${esc(g.title)}"`;
+    return `<li><a href="${esc(g.path)}"${hint}>${esc(short)}</a></li>`;
+  });
+  items.push('<li><a href="/haydy/">Усі гайди →</a></li>');
+  await writeFile(file, html.replace(placeholder, () => `<ul id="footer-guides">${items.join("")}</ul>`), "utf8");
+  console.log(`[seo] Підвал головної: ${shown.length} посилань на гайди`);
+}
+
+// ---------- permanent section pages ----------
+
+// Apostrophes in guide titles come in several shapes — ʼ (U+02BC) is what the editor produces,
+// but ’ and a plain ' turn up too. Strip them all before matching, so a search for "звяз"
+// finds "звʼязок" whichever apostrophe the title happens to use.
+const APOSTROPHES = /[ʼ‘’'`´]/g;
+const matchKey = title => String(title ?? "").replace(APOSTROPHES, "").toLowerCase();
+
+// A guide whose title mentions something, so a section page can point at it for the details
+// instead of repeating them (duplicated text would sink both pages in search).
+// Patterns are matched against matchKey(), so write them lowercase and without apostrophes.
+const findGuide = (guides, re) => guides.find(g => re.test(matchKey(g.title))) || null;
+
+const guideLink = (g, fallbackText) =>
+  g ? `<a href="${esc(g.path)}">${esc(g.title)}</a>` : `<a href="/haydy/">${fallbackText}</a>`;
+
+function webPageLd({ path, name, description }) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name,
+    description,
+    url: `${SITE}${path}`,
+    inLanguage: "uk",
+    isPartOf: { "@type": "WebSite", name: "Blackout", url: `${SITE}/` },
+    publisher: { "@type": "Organization", name: "blackout.org.ua", url: `${SITE}/` },
+  };
+}
+
+function mapSectionMain({ crumbs, guides, hasGuides }) {
+  const connectivity = findGuide(guides, /звяз|інтернет|мобільн/);
+  const shelter = findGuide(guides, /незламност|незламн/);
+  const related = [connectivity, shelter].filter(Boolean);
+  return `${crumbs.html}
+<h1>Карта повітряних тривог України</h1>
+<p>Карта показує, де зараз оголошено повітряну тривогу — по всіх 139 районах України. Стан підтягується з офіційного API alerts.in.ua і оновлюється автоматично, без перезавантаження сторінки.</p>
+
+<h2>Як читати карту</h2>
+<p>Сірим залито райони, де зараз спокійно. Кольором — ті, де тривога триває просто зараз. Наведіть курсор на район, щоб побачити його назву й область; під картою є той самий перелік текстом — зручніше з телефона й доступніше для зчитувачів екрана.</p>
+
+<h2>Тривога по всій області та по окремих районах</h2>
+<p>Це різні речі, і їх часто плутають. Обласна тривога охоплює всю територію області одразу — так оголошують, коли загроза стосується регіону загалом. Районна тривога вмикається точково: сусідній район може лишатися без тривоги, поки у вашому вона триває. Тому на карті буває, що область «рябіє» — частина районів кольорова, частина ні. Дивіться саме на свій район, а не на область цілком.</p>
+
+<h2>Чим карта не є</h2>
+<p class="warn">Карта довідкова. Вона не замінює сирени й офіційний застосунок «Повітряна тривога»: дані можуть надходити із затримкою, а рішення про укриття ухвалюють за офіційним сигналом, а не за кольором на екрані.</p>
+
+<p><a class="cta" href="/?tab=map">Відкрити живу карту тривог</a></p>
+
+${related.length
+  ? `<h2>Корисне поруч</h2>\n<ul>\n${related.map(g => `<li>${guideLink(g)}</li>`).join("\n")}\n</ul>`
+  : ""}
+<p><a href="/hrafik-vidkliuchen/">Графік відключень світла →</a>${hasGuides ? ' · <a href="/haydy/">Усі гайди →</a>' : ""}</p>`;
+}
+
+function scheduleSectionMain({ crumbs, guides, generatedRegions, hasGuides }) {
+  const queuesGuide = findGuide(guides, /черг|підчерг/);
+  return `${crumbs.html}
+<h1>Графік відключень світла в Україні</h1>
+<p>Коли енергосистемі бракує потужності, споживачів вимикають за графіком погодинних відключень (ГПВ). Тут — як влаштовані черги, де подивитися свою і чому реальність не завжди збігається з планом.</p>
+
+<h2>Черги та підчерги</h2>
+<p>Усіх побутових споживачів поділено на шість черг. Кожна черга ділиться навпіл — на дві підчерги, які позначають через крапку: 1.1 і 1.2, 2.1 і 2.2, і так далі до 6.2. Разом виходить дванадцять груп, і вимикають їх не всі одразу, а по черзі.</p>
+
+<h2>Як дізнатися свою чергу</h2>
+<ul>
+  <li>перелік адрес на сайті вашого обленерго — там шукають за вулицею й будинком;</li>
+  <li>платіжка за електроенергію — номер черги часто надрукований на ній;</li>
+  <li>кол-центр обленерго, якщо перші два способи не спрацювали.</li>
+</ul>
+<p>Черга закріплена за адресою, тож дізнатися її достатньо один раз.</p>
+
+<h2>Звідки дані на сайті</h2>
+<p>Графіки ми беремо з alerts.energy. Це неофіційний агрегатор: він збирає оприлюднені обленерго графіки в одному форматі. Дані можуть відрізнятися від того, що публікує ваш оператор, і оновлюватися із затримкою — для важливих рішень звіряйтеся з офіційним каналом обленерго.</p>
+
+<h2>Планові й аварійні відключення</h2>
+<p>За графіком вимикають планово, і це видно заздалегідь. Аварійні відключення — інша історія: вони трапляються через пошкодження мережі й накладаються поверх графіка, ніде в ньому не відображаючись. Саме тому світла іноді немає тоді, коли за планом воно мало бути.</p>
+<p>${queuesGuide
+  ? `Докладніше про це — у гайді ${guideLink(queuesGuide)}.`
+  : 'Докладніше про це — у <a href="/haydy/">гайдах</a>.'}</p>
+
+<p><a class="cta" href="/?tab=schedule">Відкрити живий графік відключень</a></p>
+${generatedRegions.length
+  ? `\n<h2>Графіки по областях</h2>\n<ul class="links">\n${generatedRegions.map(r => `<li><a href="/hrafik-vidkliuchen/${r.slug}/">${esc(r.name)}</a></li>`).join("\n")}\n</ul>`
+  : ""}
+
+<p><a href="/karta-povitryanyh-tryvog/">Карта повітряних тривог →</a>${hasGuides ? ' · <a href="/haydy/">Усі гайди →</a>' : ""}</p>`;
+}
+
 // ---------- sitemap ----------
 
 function sitemapXml(entries) {
@@ -526,8 +641,8 @@ async function main() {
   const hasGuides = guides.length > 0;
 
   const navHtml = [
-    '<a href="/">Карта тривог</a>',
-    hasHub ? '<a href="/hrafik-vidkliuchen/">Графіки відключень</a>' : "",
+    '<a href="/karta-povitryanyh-tryvog/">Карта тривог</a>',
+    '<a href="/hrafik-vidkliuchen/">Графік відключень</a>',
     hasGuides ? '<a href="/haydy/">Гайди</a>' : "",
   ].filter(Boolean).join("");
 
@@ -538,7 +653,7 @@ async function main() {
 
   if (hasHub) {
     const homeCrumb = { name: "Головна", path: "/" };
-    const hubCrumb = { name: "Графіки відключень", path: "/hrafik-vidkliuchen/" };
+    const hubCrumb = { name: "Графік відключень", path: "/hrafik-vidkliuchen/" };
 
     for (const region of generatedRegions) {
       const path = `/hrafik-vidkliuchen/${region.slug}/`;
@@ -552,27 +667,41 @@ async function main() {
       await writePage(`hrafik-vidkliuchen/${region.slug}`, html);
       sitemap.push({ loc: `${SITE}${path}`, lastmod: BUILT_AT.toISOString(), changefreq: "hourly", priority: "0.8" });
     }
+  }
 
-    // hub: a real index of the pages above (also gives the breadcrumb's middle item a valid URL)
-    const hubPath = "/hrafik-vidkliuchen/";
-    const crumbs = breadcrumbs([homeCrumb, { name: "Графіки відключень", path: hubPath }]);
-    const hubHtml = pageShell({
-      path: hubPath,
-      title: "Графіки відключень світла по областях України | Blackout",
-      description: `Графіки погодинних відключень електроенергії по областях України: ${generatedRegions.length} ${generatedRegions.length === 1 ? "регіон" : "регіонів"} з актуальними чергами та годинами без світла.`,
-      ld: [crumbs.json], nav: navHtml,
-      main: `${crumbs.html}
-<h1>Графіки відключень світла по областях</h1>
-<p>Оберіть свою область, щоб побачити актуальний графік погодинних відключень електроенергії: черги, підчерги та години без світла на сьогодні й завтра. Тут перелічено лише ті області, для яких зараз є дані.</p>
-<p>Черг шість, і кожна ділиться на дві підчерги — разом 12 груп. Свою чергу зазвичай вказано в платіжці за електроенергію або в переліку адрес на сайті обленерго. Графіки — плановий орієнтир: аварійні відключення накладаються поверх них.</p>
-<ul class="links">
-${generatedRegions.map(r => `<li><a href="/hrafik-vidkliuchen/${r.slug}/">${esc(r.name)}</a></li>`).join("\n")}
-</ul>
-<p><a class="cta" href="/">Карта повітряних тривог</a></p>
-${hasGuides ? '<p><a href="/haydy/">Гайди: як пережити відключення →</a></p>' : ""}`,
-    });
-    await writePage("hrafik-vidkliuchen", hubHtml);
-    sitemap.push({ loc: `${SITE}${hubPath}`, lastmod: BUILT_AT.toISOString(), changefreq: "hourly", priority: "0.8" });
+  // ---- permanent section pages: the map and the schedule always have their own URL ----
+  {
+    const homeCrumb = { name: "Головна", path: "/" };
+
+    const mapPath = "/karta-povitryanyh-tryvog/";
+    const mapCrumbs = breadcrumbs([homeCrumb, { name: "Карта повітряних тривог", path: mapPath }]);
+    const mapTitle = "Карта повітряних тривог України онлайн — по областях і районах | Blackout";
+    const mapDescription = "Онлайн-карта повітряних тривог України по 139 районах: що означає заливка, чим обласна тривога відрізняється від районної, звідки беруться дані.";
+    await writePage("karta-povitryanyh-tryvog", pageShell({
+      path: mapPath,
+      title: mapTitle,
+      description: mapDescription,
+      ld: [webPageLd({ path: mapPath, name: "Карта повітряних тривог України", description: mapDescription }), mapCrumbs.json],
+      nav: navHtml,
+      main: mapSectionMain({ crumbs: mapCrumbs, guides, hasGuides }),
+    }));
+    sitemap.push({ loc: `${SITE}${mapPath}`, lastmod: BUILT_AT.toISOString(), changefreq: "daily", priority: "0.9" });
+
+    // This page also absorbs the role of the region hub when SEO_REGION_PAGES=1:
+    // the region list is one more section on it, not a separate page competing for the URL.
+    const schedulePath = "/hrafik-vidkliuchen/";
+    const scheduleCrumbs = breadcrumbs([homeCrumb, { name: "Графік відключень", path: schedulePath }]);
+    const scheduleTitle = "Графік відключень світла — черги та підчерги по областях | Blackout";
+    const scheduleDescription = "Як влаштовані графіки погодинних відключень світла: шість черг, дванадцять підчерг, де дізнатися свою та чим планові відключення відрізняються від аварійних.";
+    await writePage("hrafik-vidkliuchen", pageShell({
+      path: schedulePath,
+      title: scheduleTitle,
+      description: scheduleDescription,
+      ld: [webPageLd({ path: schedulePath, name: "Графік відключень світла в Україні", description: scheduleDescription }), scheduleCrumbs.json],
+      nav: navHtml,
+      main: scheduleSectionMain({ crumbs: scheduleCrumbs, guides, generatedRegions, hasGuides }),
+    }));
+    sitemap.push({ loc: `${SITE}${schedulePath}`, lastmod: BUILT_AT.toISOString(), changefreq: "daily", priority: "0.9" });
   }
 
   // ---- guide pages + list ----
@@ -631,6 +760,8 @@ ${hasHub ? '<p><a href="/hrafik-vidkliuchen/">Графіки відключен�
     });
     await writePage("haydy", listHtml);
     sitemap.push({ loc: `${SITE}/haydy/`, lastmod: BUILT_AT.toISOString(), changefreq: "weekly", priority: "0.6" });
+
+    await fillFooterGuides(guides);
   }
 
   // ---- hand-written static pages from public/ (no lastmod: they don't change per build) ----
@@ -648,6 +779,7 @@ ${hasHub ? '<p><a href="/hrafik-vidkliuchen/">Графіки відключен�
     join(DIST, "seo-pages.json"),
     JSON.stringify({
       generatedAt: BUILT_AT.toISOString(),
+      sections: { map: "/karta-povitryanyh-tryvog/", schedule: "/hrafik-vidkliuchen/" },
       regions: generatedRegions.map(r => r.slug),
       guides: guides.map(g => ({ path: g.path, title: g.title, section: g.section ?? null })),
     }) + "\n",
@@ -656,6 +788,7 @@ ${hasHub ? '<p><a href="/hrafik-vidkliuchen/">Графіки відключен�
 
   // ---- report ----
   console.log("\n[seo] ─── Підсумок ───");
+  console.log("[seo] Сторінки розділів: /karta-povitryanyh-tryvog/, /hrafik-vidkliuchen/");
   console.log(REGION_PAGES ? `[seo] Сторінки областей: ${generatedRegions.length} з ${REGION_OPTIONS.length}` : "[seo] Сторінки областей: вимкнено (SEO_REGION_PAGES!=1)");
   if (generatedRegions.length) console.log(`[seo]   створено: ${generatedRegions.map(r => r.slug).join(", ")}`);
   if (skipped.length) {

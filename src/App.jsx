@@ -181,6 +181,9 @@ const SECTION_NAMES = {
 
 const UNIT = { en: "hrs", ua: "год" };
 
+// tabs the app can open on load, addressable as /?tab=<id>
+const TAB_IDS = ["schedule", "map", "forum", "alert"];
+
 const SCHEDULE_FAQ = [
   {
     q: "Чому графік на сайті відрізняється від реального відключення у мене вдома?",
@@ -303,7 +306,14 @@ export default function LedgerForum() {
   const circleColor = isDark ? "#262a32" : "#cfd0c8";
   const t = UI[lang];
   const sectionName = id => SECTION_NAMES[lang][id];
-  const [activeTab, setActiveTab] = useState("schedule");
+  const [activeTab, setActiveTab] = useState(() => {
+    // static section pages link here as /?tab=map and /?tab=schedule
+    try {
+      const fromUrl = new URLSearchParams(window.location.search).get("tab");
+      if (fromUrl && TAB_IDS.includes(fromUrl)) return fromUrl;
+    } catch (e) { /* no window / bad URL — fall through to the default */ }
+    return "schedule";
+  });
   const mapContainerRef = useRef(null);
   const scheduleScrollRef = useRef(null);
   const dragState = useRef({ active: false, startX: 0, startScroll: 0 });
