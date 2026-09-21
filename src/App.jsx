@@ -184,6 +184,46 @@ const UNIT = { en: "hrs", ua: "год" };
 // tabs the app can open on load, addressable as /?tab=<id>
 const TAB_IDS = ["schedule", "map", "forum", "alert"];
 
+// Phone-sized layout switch. The file has no CSS classes to hang a media query on, so the
+// breakpoint lives in JS and the styles branch on it. Reads false during SSR/first paint
+// only if matchMedia is missing, which never happens in a browser.
+const NARROW_QUERY = "(max-width: 900px)";
+function useIsNarrow() {
+  const [narrow, setNarrow] = useState(() => {
+    try { return window.matchMedia(NARROW_QUERY).matches; } catch (e) { return false; }
+  });
+  useEffect(() => {
+    let mq;
+    try { mq = window.matchMedia(NARROW_QUERY); } catch (e) { return; }
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    // "change" is the right event, but it doesn't fire in every environment (device
+    // emulation, some orientation changes), and resize is cheap enough as a backstop.
+    mq.addEventListener("change", sync);
+    window.addEventListener("resize", sync);
+    return () => {
+      mq.removeEventListener("change", sync);
+      window.removeEventListener("resize", sync);
+    };
+  }, []);
+  return narrow;
+}
+
+// [true,true,false,false,true,...] -> [{on:true,start:0,end:2},{on:false,start:2,end:4},...]
+// Same array that feeds the desktop table — the phone list is a second view of it, not a
+// second source of truth.
+function groupHours(hours) {
+  const out = [];
+  (hours || []).forEach((on, h) => {
+    const last = out[out.length - 1];
+    if (last && last.on === on) last.end = h + 1;
+    else out.push({ on, start: h, end: h + 1 });
+  });
+  return out;
+}
+
+const hourLabel = h => `${String(h).padStart(2, "0")}:00`;
+
 const SCHEDULE_FAQ = [
   {
     q: "Чому графік на сайті відрізняється від реального відключення у мене вдома?",
@@ -306,6 +346,7 @@ export default function LedgerForum() {
   const circleColor = isDark ? "#262a32" : "#cfd0c8";
   const t = UI[lang];
   const sectionName = id => SECTION_NAMES[lang][id];
+  const isNarrow = useIsNarrow();
   const [activeTab, setActiveTab] = useState(() => {
     // static section pages link here as /?tab=map and /?tab=schedule
     try {
@@ -714,6 +755,18 @@ export default function LedgerForum() {
     setLiveMode(false);
   }
 
+  // The phone view shows intervals, not single hours, so a tap flips the whole run.
+  function toggleHourRange(start, end) {
+    if (!selectedEntryKey) return;
+    setManualOverrides(prev => {
+      const base = prev[selectedEntryKey] || currentEntry?.today || defaultQueueHours();
+      const flipped = !base[start];
+      const next = base.map((v, i) => (i >= start && i < end ? flipped : v));
+      return { ...prev, [selectedEntryKey]: next };
+    });
+    setLiveMode(false);
+  }
+
   function resetQueue() {
     if (!selectedEntryKey) return;
     setManualOverrides(prev => {
@@ -812,7 +865,7 @@ export default function LedgerForum() {
 
       {/* header — Reddit-style top nav */}
       <div style={{ background: card, borderBottom: `1px solid ${border}`, position: "sticky", top: 0, zIndex: 20 }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", padding: "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto", padding: isNarrow ? "10px 12px" : "10px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: isNarrow ? 8 : 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <svg viewBox="0 0 512 512" width="32" height="32" className="logo-bulb" style={{ flexShrink: 0, borderRadius: 10 }}>
               <defs>
@@ -835,7 +888,7 @@ export default function LedgerForum() {
               title={isDark ? (lang === "ua" ? "Світла тема" : "Light theme") : (lang === "ua" ? "Темна тема" : "Dark theme")}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
-                width: 32, height: 32, borderRadius: 999,
+                width: isNarrow ? 44 : 32, height: isNarrow ? 44 : 32, borderRadius: 999,
                 border: `1px solid ${border}`, background: "transparent", color: textSoft, cursor: "pointer",
               }}
             >
@@ -850,7 +903,7 @@ export default function LedgerForum() {
                   style={{
                     background: lang === code ? text : "transparent",
                     color: lang === code ? "#fff" : textSoft,
-                    border: "none", borderRadius: 999, padding: "4px 10px", fontSize: 12.5, fontWeight: 600,
+                    border: "none", borderRadius: 999, padding: isNarrow ? "0 14px" : "4px 10px", minHeight: isNarrow ? 44 : "auto", fontSize: 12.5, fontWeight: 600, fontFamily: "inherit",
                     cursor: "pointer", textTransform: "uppercase",
                   }}
                 >
@@ -865,7 +918,7 @@ export default function LedgerForum() {
                 : (lang === "ua" ? "Вхід для адміна" : "Admin login")}
               style={{
                 display: "flex", alignItems: "center", justifyContent: "center",
-                width: 32, height: 32, borderRadius: 999,
+                width: isNarrow ? 44 : 32, height: isNarrow ? 44 : 32, borderRadius: 999,
                 border: `1px solid ${border}`,
                 background: isAdmin ? orange : "transparent",
                 color: isAdmin ? "#fff" : textSoft,
@@ -884,7 +937,7 @@ export default function LedgerForum() {
             )}
           </div>
         </div>
-        <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 20px 10px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <div style={{ maxWidth: 1000, margin: "0 auto", padding: isNarrow ? "0 12px 10px" : "0 20px 10px", display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
           <h2 style={{ fontSize: 12.5, color: textSoft, fontWeight: 400, margin: 0 }}>{t.tagline}</h2>
           {lang === "ua" && (airAlerts.length > 0 || hoursOffCount > 0) && (
             <span style={{ fontSize: 12, color: textSoft, display: "flex", alignItems: "center", gap: 6 }}>
@@ -903,7 +956,7 @@ export default function LedgerForum() {
 
       {/* top-level tabs */}
       <div style={{ background: card, borderBottom: `1px solid ${border}` }}>
-        <div style={{ maxWidth: 1000, margin: "0 auto", padding: "0 20px", display: "flex", gap: 4 }}>
+        <div className="schedule-scroll" style={{ maxWidth: 1000, margin: "0 auto", padding: isNarrow ? "0 12px" : "0 20px", display: "flex", gap: 4, overflowX: "auto" }}>
           {[
             { id: "schedule", label: lang === "ua" ? "Графік" : "Schedule", icon: Clock },
             { id: "map", label: lang === "ua" ? "Карта" : "Map", icon: MapIcon },
@@ -919,7 +972,7 @@ export default function LedgerForum() {
                 style={{
                   display: "flex", alignItems: "center", gap: 6, position: "relative",
                   background: "none", border: "none", cursor: "pointer",
-                  padding: "12px 14px", fontSize: 14, fontWeight: 600,
+                  padding: isNarrow ? "12px 10px" : "12px 14px", minHeight: 44, flexShrink: 0, whiteSpace: "nowrap", fontSize: 14, fontWeight: 600, fontFamily: "inherit",
                   color: active ? orange : textSoft,
                   borderBottom: active ? `2px solid ${orange}` : "2px solid transparent",
                   marginBottom: -1,
@@ -950,7 +1003,7 @@ export default function LedgerForum() {
               <button
                 onClick={fetchAirAlerts}
                 disabled={airAlertsLoading}
-                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 6, padding: "6px 10px", cursor: airAlertsLoading ? "default" : "pointer", color: textSoft, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}
+                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 6, padding: isNarrow ? "0 14px" : "6px 10px", minHeight: isNarrow ? 44 : "auto", cursor: airAlertsLoading ? "default" : "pointer", color: textSoft, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontFamily: "inherit" }}
               >
                 <RefreshCw size={13} style={airAlertsLoading ? { animation: "spin 1s linear infinite" } : {}} />
                 Оновити
@@ -1011,11 +1064,11 @@ export default function LedgerForum() {
                     : SCHEDULE_UI.hint}
                 </div>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: isNarrow ? "stretch" : "center", flexDirection: isNarrow ? "column" : "row", gap: 8, flexWrap: "wrap", width: isNarrow ? "100%" : "auto" }}>
                 <select
                   value={scheduleRegion}
                   onChange={e => setScheduleRegion(e.target.value)}
-                  style={{ padding: "6px 8px", border: `1px solid ${border}`, borderRadius: 6, fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text, fontWeight: 600, maxWidth: 220 }}
+                  style={{ padding: "6px 8px", border: `1px solid ${border}`, borderRadius: 6, fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text, fontWeight: 600, maxWidth: isNarrow ? "100%" : 220, width: isNarrow ? "100%" : "auto", minHeight: isNarrow ? 44 : "auto" }}
                 >
                   {REGION_OPTIONS.map(r => <option key={r.slug} value={r.slug}>{r.name}</option>)}
                 </select>
@@ -1024,7 +1077,7 @@ export default function LedgerForum() {
                   value={selectedEntryKey || ""}
                   onChange={e => { setSelectedEntryKey(e.target.value); setLiveMode(true); }}
                   disabled={scheduleEntries.length === 0}
-                  style={{ padding: "6px 8px", border: `1px solid ${border}`, borderRadius: 6, fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text, width: 170, maxWidth: 170 }}
+                  style={{ padding: "6px 8px", border: `1px solid ${border}`, borderRadius: 6, fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text, width: isNarrow ? "100%" : 170, maxWidth: isNarrow ? "100%" : 170, minHeight: isNarrow ? 44 : "auto" }}
                 >
                   {scheduleEntries.length === 0 && <option value="">—</option>}
                   {scheduleEntries.map(e => {
@@ -1037,9 +1090,10 @@ export default function LedgerForum() {
                   onClick={() => fetchLiveSchedule(scheduleRegion)}
                   disabled={liveLoading}
                   aria-label="Оновити"
-                  style={{ background: "none", border: `1px solid ${border}`, borderRadius: 6, padding: "7px 8px", cursor: liveLoading ? "default" : "pointer", color: textSoft, display: "flex" }}
+                  style={{ background: "none", border: `1px solid ${border}`, borderRadius: 6, padding: isNarrow ? "0 12px" : "7px 8px", minHeight: isNarrow ? 44 : "auto", cursor: liveLoading ? "default" : "pointer", color: textSoft, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}
                 >
                   <RefreshCw size={14} style={liveLoading ? { animation: "spin 1s linear infinite" } : {}} />
+                  {isNarrow && <span style={{ fontSize: 13.5 }}>{lang === "ua" ? "Оновити" : "Refresh"}</span>}
                 </button>
               </div>
 
@@ -1061,100 +1115,156 @@ export default function LedgerForum() {
                   : liveError || "Ручний режим — виставте свій графік нижче"}
             </div>
 
-            <div
-              ref={scheduleScrollRef}
-              className="schedule-scroll"
-              style={{ overflowX: "auto", marginBottom: 10, cursor: "grab" }}
-              onMouseDown={e => {
-                const el = scheduleScrollRef.current;
-                dragState.current = { active: true, startX: e.pageX, startScroll: el.scrollLeft };
-                el.style.cursor = "grabbing";
-              }}
-              onMouseLeave={() => {
-                dragState.current.active = false;
-                if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
-              }}
-              onMouseUp={() => {
-                dragState.current.active = false;
-                if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
-              }}
-              onMouseMove={e => {
-                if (!dragState.current.active) return;
-                e.preventDefault();
-                const el = scheduleScrollRef.current;
-                const delta = e.pageX - dragState.current.startX;
-                el.scrollLeft = dragState.current.startScroll - delta;
-              }}
-            >
-              <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 760 }}>
-                <thead>
-                  <tr>
-                    <th style={{ padding: "6px 10px 6px 0", textAlign: "left", fontSize: 12, color: textSoft, fontWeight: 600, position: "sticky", left: 0, background: card }}></th>
-                    {Array.from({ length: 24 }).map((_, h) => (
-                      <th key={h} style={{ padding: "0 0 6px", fontSize: 10.5, color: textSoft, fontWeight: 600, textAlign: "center", minWidth: 28 }}>
-                        {String(h).padStart(2, "0")}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
-                      {lang === "ua" ? "Сьогодні" : "Today"}
-                    </td>
-                    {currentSchedule.map((on, hour) => (
-                      <td key={hour} style={{ padding: 2 }}>
-                        <button
-                          onClick={() => toggleHour(hour)}
-                          aria-label={`${hour}:00 — ${on ? SCHEDULE_UI.legendOn : SCHEDULE_UI.legendOff}`}
-                          title={`${hour}:00`}
-                          style={{
-                            width: "100%", height: 30,
-                            background: on ? "transparent" : dangerSoft,
-                            border: `1px solid ${on ? border : danger + "50"}`,
-                            borderRadius: 4, cursor: "pointer",
-                            display: "flex", alignItems: "center", justifyContent: "center",
-                          }}
-                        >
-                          {on
-                            ? <Zap size={13} color={textSoft} style={{ opacity: 0.4 }} />
-                            : <ZapOff size={13} color={danger} />}
-                        </button>
+            {isNarrow ? (
+              /* phone: the whole day at a glance as a list of intervals, instead of
+                 24 columns you have to drag sideways one-handed during an outage */
+              <div style={{ marginBottom: 10 }}>
+                {[
+                  { key: "today", label: lang === "ua" ? "Сьогодні" : "Today", hours: currentSchedule, editable: true },
+                  { key: "tomorrow", label: lang === "ua" ? "Завтра" : "Tomorrow", hours: currentEntry?.tomorrow, editable: false },
+                ].map(day => (
+                  <div key={day.key} style={{ marginBottom: 14 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: text, marginBottom: 6 }}>{day.label}</div>
+                    {day.hours ? (
+                      groupHours(day.hours).map(iv => {
+                        const Row = day.editable ? "button" : "div";
+                        return (
+                          <Row
+                            key={`${day.key}-${iv.start}`}
+                            {...(day.editable ? { onClick: () => toggleHourRange(iv.start, iv.end) } : {})}
+                            style={{
+                              display: "flex", alignItems: "center", gap: 12, width: "100%", boxSizing: "border-box",
+                              minHeight: 48, padding: "8px 12px", marginBottom: 6,
+                              textAlign: "left", fontFamily: "inherit",
+                              background: iv.on ? "transparent" : dangerSoft,
+                              border: `1px solid ${iv.on ? border : danger + "50"}`,
+                              borderRadius: 8,
+                              cursor: day.editable ? "pointer" : "default",
+                            }}
+                          >
+                            <span style={{
+                              width: 4, alignSelf: "stretch", borderRadius: 2, flexShrink: 0,
+                              background: iv.on ? border : danger,
+                            }} />
+                            <span style={{ fontSize: 16, fontWeight: 700, color: text, fontVariantNumeric: "tabular-nums" }}>
+                              {hourLabel(iv.start)} — {iv.end === 24 ? "24:00" : hourLabel(iv.end)}
+                            </span>
+                            <span style={{
+                              marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
+                              fontSize: 12.5, color: iv.on ? textSoft : danger, fontWeight: 600,
+                            }}>
+                              {iv.on
+                                ? <Zap size={14} color={textSoft} style={{ opacity: 0.5 }} />
+                                : <ZapOff size={14} color={danger} />}
+                              {iv.on ? SCHEDULE_UI.legendOn : SCHEDULE_UI.legendOff}
+                            </span>
+                          </Row>
+                        );
+                      })
+                    ) : (
+                      <div style={{ fontSize: 12.5, color: textSoft, padding: "6px 0" }}>
+                        {lang === "ua" ? "графік на завтра ще не опубліковано" : "tomorrow's schedule isn't published yet"}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div
+                ref={scheduleScrollRef}
+                className="schedule-scroll"
+                style={{ overflowX: "auto", marginBottom: 10, cursor: "grab" }}
+                onMouseDown={e => {
+                  const el = scheduleScrollRef.current;
+                  dragState.current = { active: true, startX: e.pageX, startScroll: el.scrollLeft };
+                  el.style.cursor = "grabbing";
+                }}
+                onMouseLeave={() => {
+                  dragState.current.active = false;
+                  if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
+                }}
+                onMouseUp={() => {
+                  dragState.current.active = false;
+                  if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
+                }}
+                onMouseMove={e => {
+                  if (!dragState.current.active) return;
+                  e.preventDefault();
+                  const el = scheduleScrollRef.current;
+                  const delta = e.pageX - dragState.current.startX;
+                  el.scrollLeft = dragState.current.startScroll - delta;
+                }}
+              >
+                <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 760 }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: "6px 10px 6px 0", textAlign: "left", fontSize: 12, color: textSoft, fontWeight: 600, position: "sticky", left: 0, background: card }}></th>
+                      {Array.from({ length: 24 }).map((_, h) => (
+                        <th key={h} style={{ padding: "0 0 6px", fontSize: 10.5, color: textSoft, fontWeight: 600, textAlign: "center", minWidth: 28 }}>
+                          {String(h).padStart(2, "0")}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
+                        {lang === "ua" ? "Сьогодні" : "Today"}
                       </td>
-                    ))}
-                  </tr>
-                  <tr>
-                    <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
-                      {lang === "ua" ? "Завтра" : "Tomorrow"}
-                    </td>
-                    {currentEntry?.tomorrow ? (
-                      currentEntry.tomorrow.map((on, hour) => (
+                      {currentSchedule.map((on, hour) => (
                         <td key={hour} style={{ padding: 2 }}>
-                          <div
+                          <button
+                            onClick={() => toggleHour(hour)}
+                            aria-label={`${hour}:00 — ${on ? SCHEDULE_UI.legendOn : SCHEDULE_UI.legendOff}`}
                             title={`${hour}:00`}
                             style={{
                               width: "100%", height: 30,
                               background: on ? "transparent" : dangerSoft,
                               border: `1px solid ${on ? border : danger + "50"}`,
-                              borderRadius: 4,
+                              borderRadius: 4, cursor: "pointer",
                               display: "flex", alignItems: "center", justifyContent: "center",
                             }}
                           >
                             {on
                               ? <Zap size={13} color={textSoft} style={{ opacity: 0.4 }} />
                               : <ZapOff size={13} color={danger} />}
-                          </div>
+                          </button>
                         </td>
-                      ))
-                    ) : (
-                      <td colSpan={24} style={{ padding: "6px 0", fontSize: 12, color: textSoft, textAlign: "center" }}>
-                        {lang === "ua" ? "графік на завтра ще не опубліковано" : "tomorrow's schedule isn't published yet"}
+                      ))}
+                    </tr>
+                    <tr>
+                      <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
+                        {lang === "ua" ? "Завтра" : "Tomorrow"}
                       </td>
-                    )}
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+                      {currentEntry?.tomorrow ? (
+                        currentEntry.tomorrow.map((on, hour) => (
+                          <td key={hour} style={{ padding: 2 }}>
+                            <div
+                              title={`${hour}:00`}
+                              style={{
+                                width: "100%", height: 30,
+                                background: on ? "transparent" : dangerSoft,
+                                border: `1px solid ${on ? border : danger + "50"}`,
+                                borderRadius: 4,
+                                display: "flex", alignItems: "center", justifyContent: "center",
+                              }}
+                            >
+                              {on
+                                ? <Zap size={13} color={textSoft} style={{ opacity: 0.4 }} />
+                                : <ZapOff size={13} color={danger} />}
+                            </div>
+                          </td>
+                        ))
+                      ) : (
+                        <td colSpan={24} style={{ padding: "6px 0", fontSize: 12, color: textSoft, textAlign: "center" }}>
+                          {lang === "ua" ? "графік на завтра ще не опубліковано" : "tomorrow's schedule isn't published yet"}
+                        </td>
+                      )}
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            )}
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 12.5, color: textSoft, flexWrap: "wrap" }}>
@@ -1170,7 +1280,7 @@ export default function LedgerForum() {
               </div>
               <button
                 onClick={resetQueue}
-                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 999, padding: "6px 12px", fontSize: 12.5, cursor: "pointer", color: textSoft }}
+                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 999, padding: isNarrow ? "0 16px" : "6px 12px", minHeight: isNarrow ? 44 : "auto", fontSize: 12.5, cursor: "pointer", color: textSoft }}
               >
                 {SCHEDULE_UI.reset}
               </button>
@@ -1208,7 +1318,41 @@ export default function LedgerForum() {
         </div>
       )}
 
-      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 20px", display: activeTab === "forum" ? "grid" : "none", gridTemplateColumns: "1fr 220px", gap: 20 }}>
+      <div style={{ maxWidth: 1000, margin: "0 auto", padding: "20px 20px", display: activeTab === "forum" ? "grid" : "none", gridTemplateColumns: isNarrow ? "minmax(0, 1fr)" : "1fr 220px", gap: isNarrow ? 14 : 20 }}>
+
+        {/* phone: sections become a scrollable chip row above the feed, so the feed itself
+            gets the full width and the affiliate block drops below it */}
+        {isNarrow && (
+          <div
+            className="schedule-scroll"
+            style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 2, marginBottom: 4 }}
+          >
+            {[{ id: "all", icon: Home, label: t.allSections, count: null }, ...SECTION_DEFS.map(s => ({
+              id: s.id, icon: s.icon, label: sectionName(s.id), count: posts.filter(p => p.section === s.id).length,
+            }))].map(chip => {
+              const Icon = chip.icon;
+              const active = activeSection === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => setActiveSection(chip.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6, flexShrink: 0,
+                    minHeight: 44, padding: "0 14px", borderRadius: 999, cursor: "pointer",
+                    border: `1px solid ${active ? orange : border}`,
+                    background: active ? orangeSoft : card,
+                    color: active ? orange : text,
+                    fontWeight: active ? 700 : 500, fontSize: 14, fontFamily: "inherit",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <Icon size={15} /> {chip.label}
+                  {chip.count ? <span style={{ fontSize: 12, color: textSoft }}>{chip.count}</span> : null}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         {/* feed */}
         <div>
@@ -1221,7 +1365,7 @@ export default function LedgerForum() {
                   background: sort === key ? orangeSoft : "transparent",
                   color: sort === key ? orange : textSoft,
                   border: "none",
-                  borderRadius: 999, padding: "6px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  borderRadius: 999, padding: isNarrow ? "0 16px" : "6px 14px", minHeight: isNarrow ? 44 : "auto", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
                 }}
               >
                 {label}
@@ -1288,7 +1432,7 @@ export default function LedgerForum() {
 
                   <button
                     onClick={() => setOpenPost(isOpen ? null : post.id)}
-                    style={{ display: "flex", alignItems: "center", gap: 6, background: neutralSoft, border: "none", borderRadius: 999, cursor: "pointer", color: textSoft, fontSize: 12.5, fontWeight: 700, padding: "6px 12px" }}
+                    style={{ display: "flex", alignItems: "center", gap: 6, background: neutralSoft, border: "none", borderRadius: 999, cursor: "pointer", color: textSoft, fontSize: 12.5, fontWeight: 700, padding: isNarrow ? "0 14px" : "6px 12px", minHeight: isNarrow ? 44 : "auto", fontFamily: "inherit" }}
                   >
                     <MessageSquare size={14} /> {post.comments.length} {t.comments}
                   </button>
@@ -1311,12 +1455,12 @@ export default function LedgerForum() {
                           value={commentDraft}
                           onChange={e => setCommentDraft(e.target.value)}
                           placeholder={t.addComment}
-                          style={{ flex: 1, border: `1px solid ${border}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text }}
+                          style={{ flex: 1, minWidth: 0, minHeight: isNarrow ? 44 : "auto", border: `1px solid ${border}`, borderRadius: 999, padding: "8px 14px", fontSize: 13.5, fontFamily: "inherit", background: inputBg, color: text }}
                           onKeyDown={e => { if (e.key === "Enter") submitComment(post.id); }}
                         />
                         <button
                           onClick={() => submitComment(post.id)}
-                          style={{ background: orange, color: "#fff", border: "none", borderRadius: 999, padding: "0 18px", fontSize: 13, fontWeight: 700, cursor: "pointer" }}
+                          style={{ background: orange, color: "#fff", border: "none", borderRadius: 999, padding: "0 18px", minHeight: isNarrow ? 44 : "auto", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "inherit" }}
                         >
                           {t.reply}
                         </button>
@@ -1331,6 +1475,7 @@ export default function LedgerForum() {
 
         {/* sidebar */}
         <div>
+          {!isNarrow && (
           <div style={{ background: card, border: `1px solid ${border}`, borderRadius: 8, padding: "14px 14px" }}>
             <div style={{ fontSize: 11, letterSpacing: "0.06em", color: textSoft, marginBottom: 10, fontWeight: 700, textTransform: "uppercase" }}>{t.sections}</div>
             <button
@@ -1367,8 +1512,9 @@ export default function LedgerForum() {
               );
             })}
           </div>
+          )}
 
-          <div style={{ background: orangeSoft, border: `1px solid ${orange}40`, borderRadius: 8, padding: "14px 14px", marginTop: 12 }}>
+          <div style={{ background: orangeSoft, border: `1px solid ${orange}40`, borderRadius: 8, padding: "14px 14px", marginTop: isNarrow ? 0 : 12 }}>
             <div style={{ fontSize: 11, letterSpacing: "0.06em", color: orange, marginBottom: 8, fontWeight: 700, textTransform: "uppercase" }}>
               {lang === "ua" ? "Дешеві павербанки" : "Cheap power banks"}
             </div>
@@ -1389,7 +1535,7 @@ export default function LedgerForum() {
               href="https://temu.to/k/e6ethc7jzjk"
               target="_blank"
               rel="noopener sponsored"
-              style={{ display: "inline-block", background: orange, color: "#fff", borderRadius: 999, padding: "9px 18px", fontSize: 14, fontWeight: 700, textDecoration: "none" }}
+              style={{ display: "inline-flex", alignItems: "center", background: orange, color: "#fff", borderRadius: 999, padding: isNarrow ? "0 20px" : "9px 18px", minHeight: isNarrow ? 44 : "auto", fontSize: 14, fontWeight: 700, textDecoration: "none" }}
             >
               {lang === "ua" ? "Переглянути на Temu" : "Check Temu"}
             </a>
@@ -1397,7 +1543,7 @@ export default function LedgerForum() {
               {lang === "ua" ? "Партнерське посилання" : "Affiliate link"}
             </div>
             {powerbankGuide && (
-              <a href={powerbankGuide.path} style={{ display: "inline-block", fontSize: 12.5, color: textSoft, marginTop: 10, textDecoration: "underline" }}>
+              <a href={powerbankGuide.path} style={{ display: "inline-flex", alignItems: "center", minHeight: isNarrow ? 44 : "auto", fontSize: 12.5, color: textSoft, marginTop: isNarrow ? 4 : 10, textDecoration: "underline" }}>
                 {lang === "ua" ? "Як обрати павербанк" : "How to choose a power bank"}
               </a>
             )}
@@ -1424,7 +1570,7 @@ export default function LedgerForum() {
               <button
                 onClick={fetchAirAlerts}
                 disabled={airAlertsLoading}
-                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 6, padding: "6px 10px", cursor: airAlertsLoading ? "default" : "pointer", color: textSoft, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5 }}
+                style={{ background: "none", border: `1px solid ${border}`, borderRadius: 6, padding: isNarrow ? "0 14px" : "6px 10px", minHeight: isNarrow ? 44 : "auto", cursor: airAlertsLoading ? "default" : "pointer", color: textSoft, display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontFamily: "inherit" }}
               >
                 <RefreshCw size={13} style={airAlertsLoading ? { animation: "spin 1s linear infinite" } : {}} />
                 {lang === "ua" ? "Оновити" : "Refresh"}
@@ -1449,6 +1595,12 @@ export default function LedgerForum() {
               .map-district.kind-nuclear { fill: ${mapNuclearDistrict}; stroke: #ffffff; stroke-width: 1.5; }
               .map-district.oblast-alert { opacity: 0.6; }
               .map-label { display: none; }
+              /* Phones: the oblast/capital names are sized in viewBox units, so on a ~360px-wide
+                 map they land at about 3 CSS px. Scaling them to a readable size would cover the
+                 map with 25 overlapping words, so hide them — the colours still read, and the
+                 Alert tab carries the same information as text. display isn't set inline, so
+                 unlike font-size this rule actually wins. */
+              ${isNarrow ? ".map-oblast-label, .map-capital-label { display: none; }" : ""}
               .map-oblast-label {
                 fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 700; font-size: 14px;
                 text-anchor: middle; dominant-baseline: middle; pointer-events: none;
@@ -1601,12 +1753,12 @@ export default function LedgerForum() {
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginBottom: 12 }}>
               {seoPages.guides.slice(0, 12).map(g => (
-                <a key={g.path} href={g.path} style={{ fontSize: 13, color: orange, textDecoration: "none" }}>
+                <a key={g.path} href={g.path} style={{ fontSize: 13, color: orange, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: isNarrow ? 44 : "auto" }}>
                   {g.title}
                 </a>
               ))}
             </div>
-            <a href="/haydy/" style={{ fontSize: 13, fontWeight: 700, color: orange, textDecoration: "none" }}>
+            <a href="/haydy/" style={{ fontSize: 13, fontWeight: 700, color: orange, textDecoration: "none", display: "inline-flex", alignItems: "center", minHeight: isNarrow ? 44 : "auto" }}>
               {lang === "ua" ? "Усі гайди →" : "All guides →"}
             </a>
           </div>
@@ -1634,13 +1786,13 @@ export default function LedgerForum() {
             </p>
           ))}
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 16px", marginTop: 10 }}>
-            <a href="/pro-sajt.html" style={{ fontSize: 12, color: orange }}>
+            <a href="/pro-sajt.html" style={{ fontSize: 12, color: orange, display: "inline-flex", alignItems: "center", minHeight: isNarrow ? 44 : "auto" }}>
               {lang === "ua" ? "Про сайт" : "About"}
             </a>
-            <a href="/kontakty.html" style={{ fontSize: 12, color: orange }}>
+            <a href="/kontakty.html" style={{ fontSize: 12, color: orange, display: "inline-flex", alignItems: "center", minHeight: isNarrow ? 44 : "auto" }}>
               {lang === "ua" ? "Контакти" : "Contacts"}
             </a>
-            <a href="/privacy.html" style={{ fontSize: 12, color: orange }}>
+            <a href="/privacy.html" style={{ fontSize: 12, color: orange, display: "inline-flex", alignItems: "center", minHeight: isNarrow ? 44 : "auto" }}>
               {lang === "ua" ? "Політика конфіденційності" : "Privacy Policy"}
             </a>
           </div>
