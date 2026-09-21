@@ -209,21 +209,6 @@ function useIsNarrow() {
   return narrow;
 }
 
-// [true,true,false,false,true,...] -> [{on:true,start:0,end:2},{on:false,start:2,end:4},...]
-// Same array that feeds the desktop table — the phone list is a second view of it, not a
-// second source of truth.
-function groupHours(hours) {
-  const out = [];
-  (hours || []).forEach((on, h) => {
-    const last = out[out.length - 1];
-    if (last && last.on === on) last.end = h + 1;
-    else out.push({ on, start: h, end: h + 1 });
-  });
-  return out;
-}
-
-const hourLabel = h => `${String(h).padStart(2, "0")}:00`;
-
 const SCHEDULE_FAQ = [
   {
     q: "Чому графік на сайті відрізняється від реального відключення у мене вдома?",
@@ -755,18 +740,6 @@ export default function LedgerForum() {
     setLiveMode(false);
   }
 
-  // The phone view shows intervals, not single hours, so a tap flips the whole run.
-  function toggleHourRange(start, end) {
-    if (!selectedEntryKey) return;
-    setManualOverrides(prev => {
-      const base = prev[selectedEntryKey] || currentEntry?.today || defaultQueueHours();
-      const flipped = !base[start];
-      const next = base.map((v, i) => (i >= start && i < end ? flipped : v));
-      return { ...prev, [selectedEntryKey]: next };
-    });
-    setLiveMode(false);
-  }
-
   function resetQueue() {
     if (!selectedEntryKey) return;
     setManualOverrides(prev => {
@@ -1115,156 +1088,100 @@ export default function LedgerForum() {
                   : liveError || "Ручний режим — виставте свій графік нижче"}
             </div>
 
-            {isNarrow ? (
-              /* phone: the whole day at a glance as a list of intervals, instead of
-                 24 columns you have to drag sideways one-handed during an outage */
-              <div style={{ marginBottom: 10 }}>
-                {[
-                  { key: "today", label: lang === "ua" ? "Сьогодні" : "Today", hours: currentSchedule, editable: true },
-                  { key: "tomorrow", label: lang === "ua" ? "Завтра" : "Tomorrow", hours: currentEntry?.tomorrow, editable: false },
-                ].map(day => (
-                  <div key={day.key} style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: text, marginBottom: 6 }}>{day.label}</div>
-                    {day.hours ? (
-                      groupHours(day.hours).map(iv => {
-                        const Row = day.editable ? "button" : "div";
-                        return (
-                          <Row
-                            key={`${day.key}-${iv.start}`}
-                            {...(day.editable ? { onClick: () => toggleHourRange(iv.start, iv.end) } : {})}
-                            style={{
-                              display: "flex", alignItems: "center", gap: 12, width: "100%", boxSizing: "border-box",
-                              minHeight: 48, padding: "8px 12px", marginBottom: 6,
-                              textAlign: "left", fontFamily: "inherit",
-                              background: iv.on ? "transparent" : dangerSoft,
-                              border: `1px solid ${iv.on ? border : danger + "50"}`,
-                              borderRadius: 8,
-                              cursor: day.editable ? "pointer" : "default",
-                            }}
-                          >
-                            <span style={{
-                              width: 4, alignSelf: "stretch", borderRadius: 2, flexShrink: 0,
-                              background: iv.on ? border : danger,
-                            }} />
-                            <span style={{ fontSize: 16, fontWeight: 700, color: text, fontVariantNumeric: "tabular-nums" }}>
-                              {hourLabel(iv.start)} — {iv.end === 24 ? "24:00" : hourLabel(iv.end)}
-                            </span>
-                            <span style={{
-                              marginLeft: "auto", display: "flex", alignItems: "center", gap: 6,
-                              fontSize: 12.5, color: iv.on ? textSoft : danger, fontWeight: 600,
-                            }}>
-                              {iv.on
-                                ? <Zap size={14} color={textSoft} style={{ opacity: 0.5 }} />
-                                : <ZapOff size={14} color={danger} />}
-                              {iv.on ? SCHEDULE_UI.legendOn : SCHEDULE_UI.legendOff}
-                            </span>
-                          </Row>
-                        );
-                      })
-                    ) : (
-                      <div style={{ fontSize: 12.5, color: textSoft, padding: "6px 0" }}>
-                        {lang === "ua" ? "графік на завтра ще не опубліковано" : "tomorrow's schedule isn't published yet"}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div
-                ref={scheduleScrollRef}
-                className="schedule-scroll"
-                style={{ overflowX: "auto", marginBottom: 10, cursor: "grab" }}
-                onMouseDown={e => {
-                  const el = scheduleScrollRef.current;
-                  dragState.current = { active: true, startX: e.pageX, startScroll: el.scrollLeft };
-                  el.style.cursor = "grabbing";
-                }}
-                onMouseLeave={() => {
-                  dragState.current.active = false;
-                  if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
-                }}
-                onMouseUp={() => {
-                  dragState.current.active = false;
-                  if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
-                }}
-                onMouseMove={e => {
-                  if (!dragState.current.active) return;
-                  e.preventDefault();
-                  const el = scheduleScrollRef.current;
-                  const delta = e.pageX - dragState.current.startX;
-                  el.scrollLeft = dragState.current.startScroll - delta;
-                }}
-              >
-                <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 760 }}>
-                  <thead>
-                    <tr>
-                      <th style={{ padding: "6px 10px 6px 0", textAlign: "left", fontSize: 12, color: textSoft, fontWeight: 600, position: "sticky", left: 0, background: card }}></th>
-                      {Array.from({ length: 24 }).map((_, h) => (
-                        <th key={h} style={{ padding: "0 0 6px", fontSize: 10.5, color: textSoft, fontWeight: 600, textAlign: "center", minWidth: 28 }}>
-                          {String(h).padStart(2, "0")}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
-                        {lang === "ua" ? "Сьогодні" : "Today"}
+            <div
+              ref={scheduleScrollRef}
+              className="schedule-scroll"
+              style={{ overflowX: "auto", marginBottom: 10, cursor: "grab" }}
+              onMouseDown={e => {
+                const el = scheduleScrollRef.current;
+                dragState.current = { active: true, startX: e.pageX, startScroll: el.scrollLeft };
+                el.style.cursor = "grabbing";
+              }}
+              onMouseLeave={() => {
+                dragState.current.active = false;
+                if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
+              }}
+              onMouseUp={() => {
+                dragState.current.active = false;
+                if (scheduleScrollRef.current) scheduleScrollRef.current.style.cursor = "grab";
+              }}
+              onMouseMove={e => {
+                if (!dragState.current.active) return;
+                e.preventDefault();
+                const el = scheduleScrollRef.current;
+                const delta = e.pageX - dragState.current.startX;
+                el.scrollLeft = dragState.current.startScroll - delta;
+              }}
+            >
+              <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 760 }}>
+                <thead>
+                  <tr>
+                    <th style={{ padding: "6px 10px 6px 0", textAlign: "left", fontSize: 12, color: textSoft, fontWeight: 600, position: "sticky", left: 0, background: card }}></th>
+                    {Array.from({ length: 24 }).map((_, h) => (
+                      <th key={h} style={{ padding: "0 0 6px", fontSize: 10.5, color: textSoft, fontWeight: 600, textAlign: "center", minWidth: 28 }}>
+                        {String(h).padStart(2, "0")}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
+                      {lang === "ua" ? "Сьогодні" : "Today"}
+                    </td>
+                    {currentSchedule.map((on, hour) => (
+                      <td key={hour} style={{ padding: 2 }}>
+                        <button
+                          onClick={() => toggleHour(hour)}
+                          aria-label={`${hour}:00 — ${on ? SCHEDULE_UI.legendOn : SCHEDULE_UI.legendOff}`}
+                          title={`${hour}:00`}
+                          style={{
+                            width: "100%", height: 30,
+                            background: on ? "transparent" : dangerSoft,
+                            border: `1px solid ${on ? border : danger + "50"}`,
+                            borderRadius: 4, cursor: "pointer",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                          }}
+                        >
+                          {on
+                            ? <Zap size={13} color={textSoft} style={{ opacity: 0.4 }} />
+                            : <ZapOff size={13} color={danger} />}
+                        </button>
                       </td>
-                      {currentSchedule.map((on, hour) => (
+                    ))}
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
+                      {lang === "ua" ? "Завтра" : "Tomorrow"}
+                    </td>
+                    {currentEntry?.tomorrow ? (
+                      currentEntry.tomorrow.map((on, hour) => (
                         <td key={hour} style={{ padding: 2 }}>
-                          <button
-                            onClick={() => toggleHour(hour)}
-                            aria-label={`${hour}:00 — ${on ? SCHEDULE_UI.legendOn : SCHEDULE_UI.legendOff}`}
+                          <div
                             title={`${hour}:00`}
                             style={{
                               width: "100%", height: 30,
                               background: on ? "transparent" : dangerSoft,
                               border: `1px solid ${on ? border : danger + "50"}`,
-                              borderRadius: 4, cursor: "pointer",
+                              borderRadius: 4,
                               display: "flex", alignItems: "center", justifyContent: "center",
                             }}
                           >
                             {on
                               ? <Zap size={13} color={textSoft} style={{ opacity: 0.4 }} />
                               : <ZapOff size={13} color={danger} />}
-                          </button>
+                          </div>
                         </td>
-                      ))}
-                    </tr>
-                    <tr>
-                      <td style={{ padding: "4px 10px 4px 0", fontSize: 12.5, fontWeight: 700, color: text, whiteSpace: "nowrap", position: "sticky", left: 0, background: card }}>
-                        {lang === "ua" ? "Завтра" : "Tomorrow"}
+                      ))
+                    ) : (
+                      <td colSpan={24} style={{ padding: "6px 0", fontSize: 12, color: textSoft, textAlign: "center" }}>
+                        {lang === "ua" ? "графік на завтра ще не опубліковано" : "tomorrow's schedule isn't published yet"}
                       </td>
-                      {currentEntry?.tomorrow ? (
-                        currentEntry.tomorrow.map((on, hour) => (
-                          <td key={hour} style={{ padding: 2 }}>
-                            <div
-                              title={`${hour}:00`}
-                              style={{
-                                width: "100%", height: 30,
-                                background: on ? "transparent" : dangerSoft,
-                                border: `1px solid ${on ? border : danger + "50"}`,
-                                borderRadius: 4,
-                                display: "flex", alignItems: "center", justifyContent: "center",
-                              }}
-                            >
-                              {on
-                                ? <Zap size={13} color={textSoft} style={{ opacity: 0.4 }} />
-                                : <ZapOff size={13} color={danger} />}
-                            </div>
-                          </td>
-                        ))
-                      ) : (
-                        <td colSpan={24} style={{ padding: "6px 0", fontSize: 12, color: textSoft, textAlign: "center" }}>
-                          {lang === "ua" ? "графік на завтра ще не опубліковано" : "tomorrow's schedule isn't published yet"}
-                        </td>
-                      )}
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    )}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
 
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10 }}>
               <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 12.5, color: textSoft, flexWrap: "wrap" }}>
@@ -1595,12 +1512,6 @@ export default function LedgerForum() {
               .map-district.kind-nuclear { fill: ${mapNuclearDistrict}; stroke: #ffffff; stroke-width: 1.5; }
               .map-district.oblast-alert { opacity: 0.6; }
               .map-label { display: none; }
-              /* Phones: the oblast/capital names are sized in viewBox units, so on a ~360px-wide
-                 map they land at about 3 CSS px. Scaling them to a readable size would cover the
-                 map with 25 overlapping words, so hide them — the colours still read, and the
-                 Alert tab carries the same information as text. display isn't set inline, so
-                 unlike font-size this rule actually wins. */
-              ${isNarrow ? ".map-oblast-label, .map-capital-label { display: none; }" : ""}
               .map-oblast-label {
                 fill: ${mapLabelText}; font-family: ${FONT}; font-weight: 700; font-size: 14px;
                 text-anchor: middle; dominant-baseline: middle; pointer-events: none;
