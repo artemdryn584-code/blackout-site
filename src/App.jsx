@@ -187,9 +187,13 @@ const TAB_IDS = ["schedule", "map", "forum", "alert"];
 // Phone-sized layout switch. The file has no CSS classes to hang a media query on, so the
 // breakpoint lives in JS and the styles branch on it. Reads false during SSR/first paint
 // only if matchMedia is missing, which never happens in a browser.
-// Expanded map width. The drawing is 4852x3252, so 149vh of width makes it exactly one
-// screen tall; anything wider than the viewport simply pans.
-const MAP_ZOOM_WIDTH = "max(100vw, 149vh)";
+// Expanded map width. The drawing is 4852x3252 (1.49:1), so on a phone this comes out
+// about 60% of the screen height tall — clearly bigger than the card, without turning
+// into a wall you have to drag across.
+const MAP_ZOOM_WIDTH = "max(100vw, 90vh)";
+// Vertical centring, done in CSS so the two stacked SVGs get the same offset and stay
+// aligned: height is MAP_ZOOM_WIDTH / 1.4919, so the gap above it is half of what's left.
+const MAP_ZOOM_TOP = "max(0px, calc(50vh - max(33.5vw, 30.2vh)))";
 
 const NARROW_QUERY = "(max-width: 900px)";
 function useIsNarrow() {
@@ -1574,18 +1578,9 @@ export default function LedgerForum() {
                   <X size={18} />
                 </button>
               )}
-              {!mapExpanded && (
-                <span style={{
-                  position: "absolute", top: 10, right: 10, zIndex: 2,
-                  padding: "5px 10px", borderRadius: 999, fontSize: 11.5, fontWeight: 600,
-                  background: "rgba(2,3,7,0.65)", color: "rgba(238,242,248,0.85)", pointerEvents: "none",
-                }}>
-                  {lang === "ua" ? "Натисніть, щоб збільшити" : "Tap to enlarge"}
-                </span>
-              )}
               <div
                 ref={mapContainerRef}
-                style={{ width: mapExpanded ? MAP_ZOOM_WIDTH : "100%" }}
+                style={{ width: mapExpanded ? MAP_ZOOM_WIDTH : "100%", marginTop: mapExpanded ? MAP_ZOOM_TOP : 0 }}
                 dangerouslySetInnerHTML={{
                   // viewBox is the *actual* bounding box of every district path (checked
                   // via getBBox across all 139 of them: x 97–4889, y 162–3354), plus a
@@ -1602,7 +1597,7 @@ export default function LedgerForum() {
                   read clearly even when neighbouring raions share the same alert fill */}
               <svg
                 viewBox="67 132 4852 3252"
-                style={{ position: "absolute", top: 0, left: 0, width: mapExpanded ? MAP_ZOOM_WIDTH : "100%", height: "auto", pointerEvents: "none" }}
+                style={{ position: "absolute", top: mapExpanded ? MAP_ZOOM_TOP : 0, left: 0, width: mapExpanded ? MAP_ZOOM_WIDTH : "100%", height: "auto", pointerEvents: "none" }}
               >
                 {Object.entries(OBLAST_BORDER_PATHS).map(([oblast, d]) => (
                   <path key={oblast} d={d} fill="none" stroke={mapOblastBorder} strokeWidth={1.5} strokeLinejoin="round" />
